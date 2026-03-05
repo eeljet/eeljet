@@ -1211,10 +1211,18 @@ export async function deleteProject(
       if (!processExists) {
         appendLog(`PM2 process ${project.pm2Id} not found, already gone`);
       } else {
-        await run(
-          `bash -c '${sourceNvm} && pm2 delete ${project.pm2Id} && pm2 save'`,
-          `Stop PM2 process: ${project.pm2Id}`,
-        );
+        try {
+          await run(
+            `bash -c '${sourceNvm} && pm2 delete ${project.pm2Id} && pm2 save'`,
+            `Stop PM2 process: ${project.pm2Id}`,
+          );
+        } catch (pmError) {
+          // Try force delete if normal delete fails
+          appendLog(`Normal PM2 delete failed, attempting force kill...`);
+          await sshExec(vps.ssh, `bash -c '${sourceNvm} && pm2 kill || true'`);
+          appendLog(`PM2 process force killed`);
+          throw pmError;
+        }
         const verify = await sshExec(
           vps.ssh,
           `bash -c '${sourceNvm} && pm2 jlist'`,
@@ -1245,8 +1253,8 @@ export async function deleteProject(
 
   // 3. Reload nginx (safety reload)
   try {
-    await run(`sudo nginx -t 2>&1`, "Test nginx config");
-    await run(`sudo systemctl reload nginx`, "Reload nginx");
+    await run(`sudo -n nginx -t 2>&1`, "Test nginx config");
+    await run(`sudo -n systemctl reload nginx`, "Reload nginx");
     appendLog("Nginx reloaded and verified");
   } catch (e) {
     errors.push(e instanceof Error ? e.message : String(e));
@@ -1256,7 +1264,7 @@ export async function deleteProject(
   try {
     if (projectPath.startsWith(vps.projectsRoot) && project.subdomain) {
       await run(
-        `sudo rm -rf "${projectPath}"`,
+        `rm -rf "${projectPath}"`,
         `Remove directory ${projectPath}`,
       );
       const gone = await verifyGone(projectPath, "dir");
@@ -1275,7 +1283,7 @@ export async function deleteProject(
     try {
       if (bucket.path.startsWith(storageRoot)) {
         await run(
-          `sudo rm -rf "${bucket.path}"`,
+          `rm -rf "${bucket.path}"`,
           `Remove storage bucket ${bucket.name}`,
         );
         const gone = await verifyGone(bucket.path, "dir");
