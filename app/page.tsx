@@ -55,22 +55,22 @@ const features = [
 
 const deploySteps = [
   {
-    step: "01",
+    step: "1",
     label: "Connect",
     desc: "Sign in with GitHub and pick a repository",
   },
   {
-    step: "02",
+    step: "2",
     label: "Configure",
     desc: "Choose a subdomain and add your environment variables",
   },
   {
-    step: "03",
+    step: "3",
     label: "Deploy",
     desc: "One click. Build, start, and go live automatically",
   },
   {
-    step: "04",
+    step: "4",
     label: "Manage",
     desc: "View logs, redeploy, or update from your dashboard",
   },
