@@ -136,7 +136,10 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   const writer = stream.writable.getWriter();
 
   const send = (event: Record<string, unknown>) => {
-    writer.write(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+    // Ensure all values are properly serialized and free of unescaped newlines
+    const cleanEvent = JSON.parse(JSON.stringify(event));
+    const encoded = `data: ${JSON.stringify(cleanEvent)}\n\n`;
+    writer.write(encoder.encode(encoded));
   };
 
   (async () => {
@@ -205,7 +208,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const writer = stream.writable.getWriter();
 
     const send = (event: Record<string, unknown>) => {
-      writer.write(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+      // Ensure all values are properly serialized and free of unescaped newlines
+      const cleanEvent = JSON.parse(JSON.stringify(event));
+      const encoded = `data: ${JSON.stringify(cleanEvent)}\n\n`;
+      writer.write(encoder.encode(encoded));
     };
 
     (async () => {
