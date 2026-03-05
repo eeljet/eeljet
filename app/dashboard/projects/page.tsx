@@ -91,6 +91,40 @@ export default function ProjectsPage() {
     }
   };
 
+  const consumeSSE = async (
+    res: Response,
+  ): Promise<{ error?: string; result?: Record<string, unknown> }> => {
+    const reader = res.body?.getReader();
+    if (!reader) throw new Error("No response stream");
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+
+        try {
+          const event = JSON.parse(line.slice(6));
+          if (event.type === "complete") return { result: event };
+          if (event.type === "error") return { error: event.error };
+        } catch (parseErr) {
+          // Skip lines that aren't valid JSON
+          continue;
+        }
+      }
+    }
+
+    return {};
+  };
+
   const performAction = async (projectId: string, action: "deploy" | "restart" | "stop") => {
     setActionLoading(`${projectId}-${action}`);
     setError(null);
@@ -103,12 +137,15 @@ export default function ProjectsPage() {
         body: JSON.stringify({ action }),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
+      if (!res.ok && res.headers.get("content-type") !== "text/event-stream") {
+        const data = await res.json();
         throw new Error(data.error || `Failed to ${action} project`);
       }
 
-      setSuccess(`Project ${action} initiated successfully`);
+      const { error } = await consumeSSE(res);
+      if (error) throw new Error(error);
+
+      setSuccess(`Project ${action} completed successfully`);
       await fetchProjects();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -125,10 +162,15 @@ export default function ProjectsPage() {
     setActionLoading(`${id}-delete`);
     try {
       const res = await fetch(`/api/projects/${id}`, { method: "DELETE" });
-      if (!res.ok) {
+
+      if (!res.ok && res.headers.get("content-type") !== "text/event-stream") {
         const data = await res.json();
         throw new Error(data.error || "Failed to delete project");
       }
+
+      const { error } = await consumeSSE(res);
+      if (error) throw new Error(error);
+
       setSuccess("Project deleted successfully");
       await fetchProjects();
     } catch (err) {
