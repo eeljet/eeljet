@@ -1,4 +1,4 @@
-name: Deploy To VPS
+name: Deploy To EelJet VPS
 on:
   push:
     branches:
