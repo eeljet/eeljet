@@ -100,7 +100,18 @@ export async function addPortMapping(
   const fullDomain = `${subdomain}.${domain}`;
   const mapLine = `${fullDomain} ${port};`;
 
-  const content = await readMapFile(vps);
+  let content: string;
+  try {
+    content = await readMapFile(vps);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    // If file doesn't exist, treat as empty
+    if (errorMessage.includes("No such file or directory")) {
+      content = "";
+    } else {
+      throw err;
+    }
+  }
   const lines = content.split("\n");
 
   if (lines.some((l) => l.trim() === mapLine)) {
@@ -134,7 +145,18 @@ export async function removePortMapping(
 ): Promise<void> {
   const fullDomain = `${subdomain}.${domain}`;
 
-  const content = await readMapFile(vps);
+  let content: string;
+  try {
+    content = await readMapFile(vps);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    // If file doesn't exist, nothing to remove
+    if (errorMessage.includes("No such file or directory")) {
+      return;
+    } else {
+      throw err;
+    }
+  }
   const lines = content.split("\n");
   const filtered = lines.filter((l) => !l.trim().startsWith(`${fullDomain} `));
   await writeMapFile(vps, filtered.join("\n"));
@@ -162,7 +184,18 @@ export async function updatePortMapping(
   const fullDomain = `${subdomain}.${domain}`;
   const newLine = `${fullDomain} ${newPort};`;
 
-  const content = await readMapFile(vps);
+  let content: string;
+  try {
+    content = await readMapFile(vps);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    // If file doesn't exist, can't update
+    if (errorMessage.includes("No such file or directory")) {
+      throw new Error(`Cannot update port mapping: ${fullDomain} not found (file doesn't exist)`);
+    } else {
+      throw err;
+    }
+  }
   const lines = content.split("\n");
   const updated = lines.map((l) =>
     l.trim().startsWith(`${fullDomain} `) ? newLine : l,
@@ -193,9 +226,12 @@ export async function readPortMappings(
   try {
     content = await readMapFile(vps);
   } catch (err) {
-    errors.push(
-      `Failed to read ${mapFile}: ${err instanceof Error ? err.message : String(err)}`,
-    );
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    // On a fresh VPS, the port mapping file doesn't exist yet, which is normal
+    if (errorMessage.includes("No such file or directory")) {
+      return { mappings, errors };
+    }
+    errors.push(`Unable to read server configuration file. Please contact support if this issue persists.`);
     return { mappings, errors };
   }
 

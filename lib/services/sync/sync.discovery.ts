@@ -27,7 +27,7 @@ export async function discoverVPSProjects(
   // Step 1: Read port mappings from nginx map file
   const mapResult = await readPortMappings(vps);
   for (const e of mapResult.errors) {
-    errors.push(`Port mapping parse error: ${e}`);
+    errors.push(`Unable to read server configuration. Please try again or contact support if the issue persists.`);
   }
 
   // Filter to our domain only
@@ -53,9 +53,7 @@ export async function discoverVPSProjects(
       projects.push(project);
     } catch (err) {
       errors.push(
-        `Failed to gather data for ${mapping.subdomain}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
+        `Unable to gather project data for ${mapping.subdomain}. Please try again or contact support if the issue persists.`,
       );
     }
   }
