@@ -22,7 +22,9 @@ export async function testNginxConfig(
   vps: VPSConfig,
 ): Promise<{ valid: boolean; error?: string }> {
   try {
-    const result = await sshExec(vps.ssh, "sudo nginx -t 2>&1");
+    // Use NOPASSWD sudo which doesn't require interactive password input
+    // Try with sudo first, fallback to direct nginx -t if user has permissions
+    const result = await sshExec(vps.ssh, "sudo -n nginx -t 2>&1 || nginx -t 2>&1");
     if (result.code !== 0) {
       return {
         valid: false,
@@ -40,7 +42,8 @@ export async function testNginxConfig(
  * Reload Nginx on remote server
  */
 export async function reloadNginx(vps: VPSConfig): Promise<void> {
-  const result = await sshExec(vps.ssh, "sudo systemctl reload nginx");
+  // Use -n flag to prevent password prompt on non-interactive SSH
+  const result = await sshExec(vps.ssh, "sudo -n systemctl reload nginx");
   if (result.code !== 0) {
     throw new Error(`Failed to reload Nginx: ${result.stderr}`);
   }
