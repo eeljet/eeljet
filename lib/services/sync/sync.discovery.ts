@@ -4,7 +4,10 @@ import { sshExec } from "../ssh-client";
 import { parseGitHubRepo } from "../cicd";
 import type { DiscoveredProject } from "./sync.types";
 
-const SOURCE_NVM = `source ~/.nvm/nvm.sh 2>/dev/null || source ~/.bashrc 2>/dev/null || true; export PATH="$HOME/.local/share/pnpm:$PATH"`;
+const SOURCE_NVM = `# Replace your PATH export with this for better stability:
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"
+export PATH="$HOME/.local/share/pnpm:$PATH"`;
 
 interface PM2Process {
   name: string;

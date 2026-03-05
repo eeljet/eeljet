@@ -18,7 +18,10 @@ import type { VPSConfig } from "./nginx-manager";
 
 export type { PackageManager } from "./packages";
 
-const SOURCE_NVM = `source ~/.nvm/nvm.sh 2>/dev/null || source ~/.bashrc 2>/dev/null || true; export PATH="$HOME/.local/share/pnpm:$PATH"`;
+const SOURCE_NVM = `# Replace your PATH export with this for better stability:
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"
+export PATH="$HOME/.local/share/pnpm:$PATH"`;
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -253,6 +256,7 @@ export async function createProject(
   const buildStep = logger.addStep("Build application");
   const pm2Step = logger.addStep("Start with PM2");
   const portMapStep = logger.addStep("Add port mapping");
+  const nginxReloadStep = logger.addStep("Reload Nginx");
   const dbStep = logger.addStep("Save to database");
   const cicdStep = logger.addStep("Setup CI/CD");
 
@@ -410,7 +414,12 @@ export async function createProject(
     env: {
       NODE_ENV: 'production',
       PORT: ${input.port}
-    }
+    },
+    // Replace your PATH export with this for better stability:
+    exec_mode: 'fork',
+    interpreter: 'bash',
+    interpreter_args: '-c',
+    args: \`export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \\\\. "$NVM_DIR/nvm.sh" && export PATH="$HOME/.local/share/pnpm:$PATH" && ${input.startCommand}\`
   }]
 };`
       : appType.generateEcosystemConfig({
@@ -472,7 +481,12 @@ export async function createProject(
     await addPortMapping(vps, input.subdomain, domain, input.port);
     logger.completeStep(portMapStep, `Mapped to port ${input.port}`);
 
-    // STEP 12: Database
+    // STEP 12: Reload Nginx to apply new port mapping
+    logger.startStep(nginxReloadStep);
+    await sshExec(vps.ssh, `echo "Reloading Nginx config..." && sudo -n nginx -t && sudo -n systemctl reload nginx`);
+    logger.completeStep(nginxReloadStep, "Nginx reloaded");
+
+    // STEP 13: Database
     logger.startStep(dbStep);
     const project = await prisma.project.create({
       data: {
