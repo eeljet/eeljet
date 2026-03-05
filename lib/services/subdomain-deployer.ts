@@ -234,7 +234,13 @@ export async function createProject(
     `test -d "${projectPath}" && echo "exists" || echo "missing"`,
   );
   if (dirCheck.stdout.trim() === "exists") {
-    return { success: false, error: "Subdomain is already taken" };
+    // directory exists but we already checked the database above and found no
+    // project record.  That means a previous deployment attempt may have
+    // partially created the folder before failing.  Rather than erroring out
+    // with "Subdomain is already taken" we treat this as a stale state –
+    // remove it and continue so the user can retry without picking a new
+    // subdomain.
+    await sshExec(vps.ssh, `sudo rm -rf "${projectPath}"`);
   }
 
   // Define all steps
