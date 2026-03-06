@@ -403,6 +403,7 @@ export async function createProject(
           cwd: workDir,
           port: input.port,
           packageManager: pm.name,
+          hostname: `${input.subdomain}.${domain}`,
         });
     const ecoWriteResult = await sshExec(
       vps.ssh,
@@ -872,6 +873,7 @@ export async function deployProject(
                 cwd: workDir,
                 port: project.port,
                 packageManager: pm?.name ?? "npm",
+                hostname: `${project.subdomain}.${domain}`,
               });
           const ecoWriteRes = await sshExec(
             vps.ssh,

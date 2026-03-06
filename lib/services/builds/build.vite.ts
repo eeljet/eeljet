@@ -34,12 +34,13 @@ export class ViteApp implements AppTypeDetector {
   apps: [{
     name: '${options.name}',
     script: './node_modules/vite/dist/node/cli.js',
-    args: 'preview --port ${options.port} --host --allowedHosts all',
+    args: 'preview --port ${options.port} --host',
     cwd: '${options.cwd}',
     exec_mode: 'fork',
     watch: false,
     env: {
-      NODE_ENV: 'production'
+      NODE_ENV: 'production',
+      __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS: '${options.hostname}'
     }
   }]
 };`;

@@ -6,6 +6,7 @@ export interface EcosystemOptions {
   cwd: string;
   port: number;
   packageManager: string;
+  hostname: string;
 }
 
 export interface AppTypeDetector {
