@@ -40,8 +40,6 @@ import {
   Check,
   Github,
   Clock,
-  ChevronDown,
-  ChevronRight,
   SkipForward,
   Terminal,
 } from "lucide-react";
@@ -89,6 +87,128 @@ interface Project {
   envVars: { id: string; key: string }[];
 }
 
+// --- Deployment display helpers ---
+
+interface DisplayGroup {
+  label: string;
+  status: "pending" | "running" | "success" | "failed" | "skipped";
+  totalDurationMs?: number;
+  summary: string;
+  errorOutput?: string;
+}
+
+const STEP_GROUP_CONFIG: { label: string; stepNames: string[] }[] = [
+  {
+    label: "Preparing Environment",
+    stepNames: ["Clone repository", "Stop process", "Pull latest changes", "Detect package manager", "Detect app type"],
+  },
+  { label: "Configuring Environment", stepNames: ["Create .env file", "Update .env file"] },
+  { label: "Resolving Dependencies", stepNames: ["Install dependencies"] },
+  { label: "Optimizing Production Build", stepNames: ["Build application"] },
+  {
+    label: "Going Live",
+    stepNames: ["Start with PM2", "Add port mapping", "Reload Nginx", "Restart with PM2", "Save to database"],
+  },
+  { label: "Setting Up Automation", stepNames: ["Setup CI/CD"] },
+];
+
+function getGroupStatus(steps: DeploymentStep[]): DisplayGroup["status"] {
+  if (steps.length === 0) return "pending";
+  if (steps.some((s) => s.status === "failed")) return "failed";
+  if (steps.some((s) => s.status === "running")) return "running";
+  if (steps.every((s) => s.status === "skipped")) return "skipped";
+  if (steps.every((s) => s.status === "success" || s.status === "skipped")) return "success";
+  return "pending";
+}
+
+function getGroupSummary(label: string, steps: DeploymentStep[]): string {
+  if (label === "Preparing Environment") {
+    const clone = steps.find((s) => s.name === "Clone repository");
+    const pull = steps.find((s) => s.name === "Pull latest changes");
+    const detectPm = steps.find((s) => s.name === "Detect package manager" && s.status === "success");
+    const detectApp = steps.find((s) => s.name === "Detect app type" && s.status === "success");
+    const parts: string[] = [];
+    if (clone?.status === "success" && clone.output) {
+      const m = clone.output.match(/Commit:\s*([a-f0-9]{7,})/i);
+      if (m) parts.push(`Checked out commit ${m[1].substring(0, 7)}.`);
+    }
+    if (pull?.status === "success" && pull.output) {
+      const m = pull.output.match(/([a-f0-9]{7,40})/);
+      if (m) parts.push(`Updated to commit ${m[1].substring(0, 7)}.`);
+    }
+    if (detectApp && detectPm) {
+      const app = (detectApp.output ?? "").replace(/^Detected:\s*/i, "");
+      const pm = (detectPm.output ?? "").replace(/^Using\s*/i, "");
+      if (app) parts.push(`Detected ${app}${pm ? ` using ${pm}` : ""}.`);
+    }
+    return parts.join(" ");
+  }
+  if (label === "Configuring Environment") {
+    const step = steps.find((s) => s.status === "success");
+    if (step?.output) {
+      const m = step.output.match(/(\d+)\s*variables?/i);
+      if (m) return `${m[1]} environment variable${Number(m[1]) === 1 ? "" : "s"} applied.`;
+    }
+    return steps.some((s) => s.status === "success") ? "Environment variables applied." : "";
+  }
+  if (label === "Resolving Dependencies")
+    return steps.some((s) => s.status === "success") ? "All packages resolved successfully." : "";
+  if (label === "Optimizing Production Build")
+    return steps.some((s) => s.status === "success") ? "Production bundle generated successfully." : "";
+  if (label === "Going Live") {
+    const portStep = steps.find((s) => s.name === "Add port mapping" && s.status === "success");
+    if (portStep?.output) {
+      const m = portStep.output.match(/port\s*(\d+)/i);
+      if (m) return `Application started and is now live on port ${m[1]}.`;
+    }
+    return steps.some((s) => (s.name === "Start with PM2" || s.name === "Restart with PM2") && s.status === "success")
+      ? "Application is now live."
+      : "";
+  }
+  if (label === "Setting Up Automation") {
+    const step = steps[0];
+    if (step?.status === "skipped") return "Skipped.";
+    if (step?.output?.includes("GitHub Actions")) return "GitHub Actions workflow configured.";
+    return step?.status === "success" ? "CI/CD pipeline configured." : "";
+  }
+  return "";
+}
+
+function groupStepsForDisplay(steps: DeploymentStep[]): DisplayGroup[] {
+  const usedIds = new Set<string>();
+  const groups: DisplayGroup[] = [];
+  for (const config of STEP_GROUP_CONFIG) {
+    const groupSteps = steps.filter((s) => config.stepNames.includes(s.name) && !usedIds.has(s.id));
+    if (groupSteps.length === 0) continue;
+    groupSteps.forEach((s) => usedIds.add(s.id));
+    const status = getGroupStatus(groupSteps);
+    const failedStep = groupSteps.find((s) => s.status === "failed");
+    const totalMs = groupSteps.reduce((acc, s) => acc + (s.durationMs ?? 0), 0);
+    groups.push({
+      label: config.label,
+      status,
+      totalDurationMs: totalMs > 0 ? totalMs : undefined,
+      summary: getGroupSummary(config.label, groupSteps),
+      errorOutput: failedStep ? (failedStep.error ?? failedStep.output ?? undefined) : undefined,
+    });
+  }
+  // Fallback: any ungrouped steps
+  steps.filter((s) => !usedIds.has(s.id)).forEach((s) => {
+    groups.push({
+      label: s.name,
+      status: s.status,
+      totalDurationMs: s.durationMs,
+      summary: s.output ?? "",
+      errorOutput: s.error,
+    });
+  });
+  return groups;
+}
+
+function isRedeployment(steps: DeploymentStep[]): boolean {
+  return steps.some((s) => s.name === "Pull latest changes" || s.name === "Stop process");
+}
+
 export default function ProjectDetailPage({
   params,
 }: {
@@ -120,7 +240,6 @@ export default function ProjectDetailPage({
   const [deploymentSteps, setDeploymentSteps] = useState<DeploymentStep[] | null>(null);
   const [deploymentTextLog, setDeploymentTextLog] = useState<string | null>(null);
   const [loadingLogs, setLoadingLogs] = useState(false);
-  const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
 
   // Resume dialog
   const [showResumeDialog, setShowResumeDialog] = useState(false);
@@ -224,7 +343,6 @@ export default function ProjectDetailPage({
         const data = await res.json();
         setDeploymentSteps(data.steps);
         setDeploymentTextLog(data.textLog);
-        autoExpandFailedSteps(data.steps);
       }
     } catch {
       // Ignore
@@ -233,29 +351,6 @@ export default function ProjectDetailPage({
     }
   };
 
-  const toggleStepExpanded = (stepId: string) => {
-    setExpandedSteps((prev) => {
-      const next = new Set(prev);
-      if (next.has(stepId)) next.delete(stepId);
-      else next.add(stepId);
-      return next;
-    });
-  };
-
-  // Automatically expand any failed step that has output/error so users see
-  // the details without needing to know to click it.
-  const autoExpandFailedSteps = (steps: DeploymentStep[]) => {
-    const toExpand = steps
-      .filter((s) => s.status === "failed" && (s.output || s.error))
-      .map((s) => s.id);
-    if (toExpand.length > 0) {
-      setExpandedSteps((prev) => {
-        const next = new Set(prev);
-        toExpand.forEach((id) => next.add(id));
-        return next;
-      });
-    }
-  };
 
   const getLastFailedStep = (): { stepId: string; stepName: string } | null => {
     if (!project || project.status !== "FAILED") return null;
@@ -313,7 +408,6 @@ export default function ProjectDetailPage({
           setDeploymentSteps(steps);
           setDeploymentTextLog(textLog);
           setSelectedDeployment("live");
-          autoExpandFailedSteps(steps);
         },
       );
 
@@ -861,65 +955,60 @@ export default function ProjectDetailPage({
               Loading logs...
             </div>
           ) : deploymentSteps ? (
-            <div className="space-y-2">
-              {deploymentSteps.map((step) => (
-                <div key={step.id} className="border rounded-lg">
-                  <button
-                    type="button"
-                    className="flex items-center gap-2 w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors"
-                    onClick={() => toggleStepExpanded(step.id)}
-                  >
-                    {step.status === "success" ? (
-                      <Check className="h-4 w-4 text-green-500 shrink-0" />
-                    ) : step.status === "failed" ? (
-                      <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
-                    ) : step.status === "skipped" ? (
-                      <SkipForward className="h-4 w-4 text-muted-foreground shrink-0" />
-                    ) : step.status === "running" ? (
-                      <RefreshCw className="h-4 w-4 text-blue-500 animate-spin shrink-0" />
-                    ) : (
-                      <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-                    )}
-                    <span className={`text-sm flex-1 ${step.status === "skipped" ? "text-muted-foreground" : ""}`}>
-                      {step.name}
-                    </span>
-                    {step.durationMs != null && (
-                      <span className="text-xs text-muted-foreground">
-                        {step.durationMs < 1000 ? `${step.durationMs}ms` : `${(step.durationMs / 1000).toFixed(1)}s`}
-                      </span>
-                    )}
-                    {(step.output || step.error || step.command) ? (
-                      expandedSteps.has(step.id) ? (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+            <div className="space-y-1">
+              <p className="text-sm font-semibold mb-4">
+                {isRedeployment(deploymentSteps)
+                  ? `🚀 Updating ${project?.name ?? "project"}...`
+                  : "🚀 Deploying your project..."}
+              </p>
+              {groupStepsForDisplay(deploymentSteps)
+                .filter((g) => g.status !== "pending")
+                .filter((g) => !(g.label === "Setting Up Automation" && g.status === "skipped"))
+                .map((group, i) => (
+                  <div key={i} className="flex items-start gap-3 py-2 border-b last:border-0">
+                    <div className="mt-0.5 shrink-0">
+                      {group.status === "success" ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : group.status === "failed" ? (
+                        <AlertCircle className="h-4 w-4 text-destructive" />
+                      ) : group.status === "skipped" ? (
+                        <SkipForward className="h-4 w-4 text-muted-foreground" />
                       ) : (
-                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                      )
-                    ) : null}
-                  </button>
-                  {expandedSteps.has(step.id) && (
-                    <div className="px-3 pb-2 space-y-1 border-t">
-                      {step.command && (
-                        <div className="mt-2">
-                          <p className="text-xs text-muted-foreground mb-1">Command:</p>
-                          <pre className="text-xs font-mono bg-muted p-2 rounded overflow-x-auto">{step.command}</pre>
-                        </div>
-                      )}
-                      {step.output && (
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">Output:</p>
-                          <pre className="text-xs font-mono bg-muted p-2 rounded max-h-40 overflow-auto whitespace-pre-wrap">{step.output}</pre>
-                        </div>
-                      )}
-                      {step.error && (
-                        <div>
-                          <p className="text-xs text-destructive mb-1">Error:</p>
-                          <pre className="text-xs font-mono bg-destructive/10 text-destructive p-2 rounded max-h-40 overflow-auto whitespace-pre-wrap">{step.error}</pre>
-                        </div>
+                        <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />
                       )}
                     </div>
-                  )}
-                </div>
-              ))}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm font-medium ${group.status === "skipped" ? "text-muted-foreground" : ""}`}>
+                          {group.label}
+                        </span>
+                        {group.totalDurationMs != null && group.status !== "running" && (
+                          <span className="text-xs text-muted-foreground">
+                            ({(group.totalDurationMs / 1000).toFixed(1)}s)
+                          </span>
+                        )}
+                      </div>
+                      {group.summary && group.status !== "running" && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{group.summary}</p>
+                      )}
+                      {group.errorOutput && (
+                        <pre className="text-xs font-mono bg-destructive/10 text-destructive p-2 rounded mt-1 max-h-32 overflow-auto whitespace-pre-wrap">
+                          {group.errorOutput}
+                        </pre>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              {deploymentSteps.every((s) => s.status === "success" || s.status === "skipped") && (
+                <p className="text-sm font-medium text-green-500 pt-3 border-t">
+                  ✅ Deployment successful! Your app is live.
+                </p>
+              )}
+              {deploymentSteps.some((s) => s.status === "failed") && (
+                <p className="text-sm font-medium text-destructive pt-3 border-t">
+                  ❌ Deployment failed. See the error above for details.
+                </p>
+              )}
             </div>
           ) : deploymentTextLog ? (
             <pre className="text-xs font-mono bg-muted p-3 rounded max-h-96 overflow-auto whitespace-pre-wrap">
