@@ -34,7 +34,7 @@ export class ViteApp implements AppTypeDetector {
   apps: [{
     name: '${options.name}',
     script: './node_modules/vite/dist/node/cli.js',
-    args: 'preview --port ${options.port} --host',
+    args: 'preview --port ${options.port} --host --allowedHosts all',
     cwd: '${options.cwd}',
     exec_mode: 'fork',
     watch: false,
