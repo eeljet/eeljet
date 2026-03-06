@@ -140,7 +140,10 @@ export default async function LandingPage() {
                 at yourapp.eeljet.com with HTTPS.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <Link href={session ? "/dashboard" : "/api/auth/signin"} className="flex-1 sm:flex-none">
+                <Link
+                  href={session ? "/dashboard" : "/api/auth/signin"}
+                  className="flex-1 sm:flex-none"
+                >
                   <Button size="lg" className="gap-2 w-full sm:w-auto">
                     {session ? "Open Dashboard" : "Get Started"}
                     <ArrowRight className="h-4 w-4" />
@@ -152,7 +155,11 @@ export default async function LandingPage() {
                   rel="noopener noreferrer"
                   className="flex-1 sm:flex-none"
                 >
-                  <Button size="lg" variant="outline" className="gap-2 w-full sm:w-auto">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="gap-2 w-full sm:w-auto"
+                  >
                     <Github className="h-4 w-4" />
                     View on GitHub
                   </Button>
@@ -180,7 +187,8 @@ export default async function LandingPage() {
                     <div className="flex gap-2">
                       <span className="text-primary">$</span>
                       <span className="text-foreground">
-                        eeljet deploy my-app
+                        <span className="to-blue-500">eeljet</span> deploy
+                        my-app
                       </span>
                     </div>
                     <div className="text-muted-foreground space-y-1 text-xs">
@@ -308,44 +316,112 @@ export default async function LandingPage() {
                 <span className="font-bold text-lg">EelJet</span>
               </Link>
               <p className="text-sm text-muted-foreground max-w-xs">
-                Deploy your web applications to custom subdomains with automatic HTTPS in seconds.
+                Deploy your web applications to custom subdomains with automatic
+                HTTPS in seconds.
               </p>
             </div>
-            
+
             {/* Product */}
             <div className="space-y-3">
               <h4 className="font-semibold text-sm">Product</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#features" className="hover:text-foreground transition-colors">Features</a></li>
-                <li><a href="#deploy" className="hover:text-foreground transition-colors">How it works</a></li>
-                <li><a href="https://github.com/eeljet/eeljet" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Source Code</a></li>
+                <li>
+                  <a
+                    href="#features"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Features
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#deploy"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    How it works
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://github.com/eeljet/eeljet"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Source Code
+                  </a>
+                </li>
               </ul>
             </div>
-            
+
             {/* Resources */}
             <div className="space-y-3">
               <h4 className="font-semibold text-sm">Resources</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors">Documentation</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">API Reference</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Status</a></li>
+                <li>
+                  <a
+                    href="#"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Documentation
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    API Reference
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Status
+                  </a>
+                </li>
               </ul>
             </div>
-            
+
             {/* Legal */}
             <div className="space-y-3">
               <h4 className="font-semibold text-sm">Legal</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Terms of Service</a></li>
-                <li><a href="mailto:support@eeljet.com" className="hover:text-foreground transition-colors">Support</a></li>
+                <li>
+                  <a
+                    href="#"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Privacy Policy
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Terms of Service
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:support@eeljet.com"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Support
+                  </a>
+                </li>
               </ul>
             </div>
           </div>
-          
+
           {/* Bottom bar */}
           <div className="border-t border-border/50 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground">© 2026 EelJet. All rights reserved.</p>
+            <p className="text-sm text-muted-foreground">
+              © 2026 EelJet. All rights reserved.
+            </p>
             <div className="flex items-center gap-4">
               <a
                 href="https://github.com/eeljet"

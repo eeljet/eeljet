@@ -21,9 +21,12 @@ interface UserSettingsProps {
     email?: string;
     image?: string | null;
     plan: string;
+    role?: string;
   };
   onSignOut: () => Promise<void>;
 }
+
+import Link from "next/link";
 
 export default function UserSettings({ user, onSignOut }: UserSettingsProps) {
   const { theme, setTheme } = useTheme();
@@ -58,6 +61,23 @@ export default function UserSettings({ user, onSignOut }: UserSettingsProps) {
           </div>
           <p className="text-xs text-muted-foreground">{user.email}</p>
         </DropdownMenuLabel>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">
+          Navigation
+        </DropdownMenuLabel>
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard" className="cursor-pointer">Dashboard</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard/projects" className="cursor-pointer">Projects</Link>
+        </DropdownMenuItem>
+        {user.role === "ADMIN" && (
+          <DropdownMenuItem asChild>
+            <Link href="/dashboard/admin" className="cursor-pointer">Admin</Link>
+          </DropdownMenuItem>
+        )}
 
         <DropdownMenuSeparator />
 
