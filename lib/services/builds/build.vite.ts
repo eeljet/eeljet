@@ -30,21 +30,14 @@ export class ViteApp implements AppTypeDetector {
   }
 
   generateEcosystemConfig(options: EcosystemOptions): string {
-    const pm = options.packageManager;
-    // npm requires `--` to pass flags through to the underlying script
-    const args =
-      pm === "npm"
-        ? `run preview -- --port ${options.port} --host`
-        : `run preview --port ${options.port} --host`;
     return `module.exports = {
   apps: [{
     name: '${options.name}',
-    script: '${pm}',
-    args: '${args}',
-    interpreter: '/bin/bash',
+    script: './node_modules/vite/dist/node/cli.js',
+    args: 'preview --port ${options.port} --host',
     cwd: '${options.cwd}',
-    instances: 1,
     exec_mode: 'fork',
+    watch: false,
     env: {
       NODE_ENV: 'production'
     }
