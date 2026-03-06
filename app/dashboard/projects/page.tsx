@@ -6,6 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Plus,
   RefreshCw,
   FolderOpen,
@@ -73,6 +83,7 @@ export default function ProjectsPage() {
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [userPlan, setUserPlan] = useState<string>("FREE");
   const [userRole, setUserRole] = useState<string>("USER");
+  const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
 
   // Get domain from env (passed via API or hardcoded for now)
   const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || "postomation.com";
@@ -155,11 +166,9 @@ export default function ProjectsPage() {
   };
 
   const deleteProject = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this project? This will remove all resources.")) {
-      return;
-    }
-
     setActionLoading(`${id}-delete`);
+    setError(null);
+    
     try {
       const res = await fetch(`/api/projects/${id}`, { method: "DELETE" });
 
@@ -172,6 +181,7 @@ export default function ProjectsPage() {
       if (error) throw new Error(error);
 
       setSuccess("Project deleted successfully");
+      setDeleteProjectId(null);
       await fetchProjects();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -319,18 +329,20 @@ export default function ProjectsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Projects</h1>
           <p className="text-muted-foreground">
             Deploy and manage your applications
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="outline"
+            size="sm"
             onClick={syncFromVPS}
             disabled={syncing}
+            className="w-full sm:w-auto"
           >
             {syncing ? (
               <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
@@ -341,14 +353,15 @@ export default function ProjectsPage() {
               ? `Syncing ${syncProgress.current}/${syncProgress.total}...`
               : syncing
               ? "Syncing..."
-              : "Sync from VPS"}
+              : "Sync"}
           </Button>
-          <Link href={atLimit ? "#" : "/dashboard/projects/new"}>
+          <Link href={atLimit ? "#" : "/dashboard/projects/new"} className="w-full sm:w-auto">
             <Button
               disabled={atLimit}
               title={
                 atLimit ? `${userPlan} plan limit reached` : undefined
               }
+              className="w-full"
             >
               <Plus className="mr-2 h-4 w-4" />
               New Project
@@ -542,14 +555,14 @@ export default function ProjectsPage() {
       ) : (
         <div className="space-y-3">
           {projects.map((project) => (
-            <Card key={project.id}>
+            <Card key={project.id} className="hover:border-primary/30 transition-colors">
               <CardContent className="py-4">
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
                       <Link
                         href={`/dashboard/projects/${project.id}`}
-                        className="font-medium hover:underline"
+                        className="font-medium hover:underline truncate"
                       >
                         {project.name}
                       </Link>
@@ -565,27 +578,32 @@ export default function ProjectsPage() {
                             ? "outline"
                             : "destructive"
                         }
+                        className="text-xs"
                       >
                         {project.status.toLowerCase()}
                       </Badge>
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                      <span className="font-mono">
-                        {project.subdomain}.{domain}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <GitBranch className="h-3 w-3" />
-                        {getRepoName(project.repoUrl)}:{project.branch}
-                      </span>
-                      {project.lastCommitHash && (
-                        <span className="font-mono text-xs">
-                          @ {project.lastCommitHash}
+                    <div className="space-y-1.5 text-xs sm:text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1 truncate">
+                        <span className="font-mono truncate">
+                          {project.subdomain}.{domain}
                         </span>
-                      )}
-                      <span>Created: {formatDate(project.createdAt)}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span className="flex items-center gap-1 whitespace-nowrap">
+                          <GitBranch className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{getRepoName(project.repoUrl)}:{project.branch}</span>
+                        </span>
+                        {project.lastCommitHash && (
+                          <span className="font-mono text-xs">
+                            @ {project.lastCommitHash.slice(0, 8)}
+                          </span>
+                        )}
+                        <span>Created: {formatDate(project.createdAt)}</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 ml-4">
+                  <div className="flex items-center gap-1 flex-shrink-0 self-start sm:self-center">
                     {project.status === "ACTIVE" && (
                       <>
                         <a
@@ -644,7 +662,7 @@ export default function ProjectsPage() {
                       variant="ghost"
                       size="sm"
                       title="Delete"
-                      onClick={() => deleteProject(project.id)}
+                      onClick={() => setDeleteProjectId(project.id)}
                       disabled={actionLoading === `${project.id}-delete`}
                     >
                       {actionLoading === `${project.id}-delete` ? (
@@ -660,6 +678,26 @@ export default function ProjectsPage() {
           ))}
         </div>
       )}
+
+      <AlertDialog open={deleteProjectId !== null} onOpenChange={() => setDeleteProjectId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Project</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this project? This action cannot be undone and will remove all associated resources, deployments, and data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteProjectId && deleteProject(deleteProjectId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

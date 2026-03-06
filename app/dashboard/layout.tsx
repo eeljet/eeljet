@@ -9,10 +9,17 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Menu } from "lucide-react";
+import UserSettings from "@/components/layout/UserSettings";
+
+async function handleSignOut() {
+  "use server";
+  await signOut();
+}
 
 export default async function DashboardLayout({
   children,
@@ -33,8 +40,8 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      <nav className="border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+      <nav className="border-b border-border/50 bg-background/95 backdrop-blur-md sticky top-0 z-50">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2">
               <Image
@@ -66,8 +73,7 @@ export default async function DashboardLayout({
               )}
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
+          <div className="flex items-center gap-3">
             {/* Mobile Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -89,44 +95,9 @@ export default async function DashboardLayout({
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={session.user.image || ""} alt={session.user.name || ""} />
-                    <AvatarFallback>{initials}</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem className="flex flex-col items-start">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium">{session.user.name}</p>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] px-1.5 py-0"
-                    >
-                      {session.user.plan}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {session.user.email}
-                  </p>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <form
-                    action={async () => {
-                      "use server";
-                      await signOut();
-                    }}
-                  >
-                    <button type="submit" className="w-full text-left">
-                      Sign out
-                    </button>
-                  </form>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            
+            {/* User Settings and Avatar */}
+            <UserSettings user={session.user} onSignOut={handleSignOut} />
           </div>
         </div>
       </nav>

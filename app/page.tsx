@@ -139,9 +139,9 @@ export default async function LandingPage() {
                 Connect your GitHub repo, pick a subdomain, and your app is live
                 at yourapp.eeljet.com with HTTPS.
               </p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Link href={session ? "/dashboard" : "/api/auth/signin"}>
-                  <Button size="lg" className="gap-2">
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Link href={session ? "/dashboard" : "/api/auth/signin"} className="flex-1 sm:flex-none">
+                  <Button size="lg" className="gap-2 w-full sm:w-auto">
                     {session ? "Open Dashboard" : "Get Started"}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
@@ -150,10 +150,11 @@ export default async function LandingPage() {
                   href="https://github.com/eeljet/eeljet"
                   target="_blank"
                   rel="noopener noreferrer"
+                  className="flex-1 sm:flex-none"
                 >
-                  <Button size="lg" variant="outline" className="gap-2">
+                  <Button size="lg" variant="outline" className="gap-2 w-full sm:w-auto">
                     <Github className="h-4 w-4" />
-                    Source Code
+                    View on GitHub
                   </Button>
                 </a>
               </div>
@@ -291,36 +292,71 @@ export default async function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border/50 py-6">
-        <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <a
-              href="https://github.com/eeljet"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-foreground transition-colors"
-            >
-              GitHub
-            </a>
+      <footer className="border-t border-border/50 bg-muted/30 py-12 mt-20">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+            {/* Brand */}
+            <div className="space-y-3">
+              <Link href="/" className="flex items-center gap-2">
+                <Image
+                  src="/eeljet.png"
+                  alt="EelJet"
+                  width={32}
+                  height={32}
+                  className="rounded-lg"
+                />
+                <span className="font-bold text-lg">EelJet</span>
+              </Link>
+              <p className="text-sm text-muted-foreground max-w-xs">
+                Deploy your web applications to custom subdomains with automatic HTTPS in seconds.
+              </p>
+            </div>
+            
+            {/* Product */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-sm">Product</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><a href="#features" className="hover:text-foreground transition-colors">Features</a></li>
+                <li><a href="#deploy" className="hover:text-foreground transition-colors">How it works</a></li>
+                <li><a href="https://github.com/eeljet/eeljet" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Source Code</a></li>
+              </ul>
+            </div>
+            
+            {/* Resources */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-sm">Resources</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><a href="#" className="hover:text-foreground transition-colors">Documentation</a></li>
+                <li><a href="#" className="hover:text-foreground transition-colors">API Reference</a></li>
+                <li><a href="#" className="hover:text-foreground transition-colors">Status</a></li>
+              </ul>
+            </div>
+            
+            {/* Legal */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-sm">Legal</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a></li>
+                <li><a href="#" className="hover:text-foreground transition-colors">Terms of Service</a></li>
+                <li><a href="mailto:support@eeljet.com" className="hover:text-foreground transition-colors">Support</a></li>
+              </ul>
+            </div>
           </div>
-
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <a
-              href="https://eeljet.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-foreground transition-colors flex items-center gap-1"
-            >
-              <span>EelJet</span>
-              <span className="text-border">|</span>
-              <Image
-                src="/eeljet.png"
-                alt="EelJet"
-                width={20}
-                height={20}
-                className="rounded bg-amber-50"
-              />
-            </a>
+          
+          {/* Bottom bar */}
+          <div className="border-t border-border/50 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-muted-foreground">© 2026 EelJet. All rights reserved.</p>
+            <div className="flex items-center gap-4">
+              <a
+                href="https://github.com/eeljet"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                title="GitHub"
+              >
+                <Github className="h-5 w-5" />
+              </a>
+            </div>
           </div>
         </div>
       </footer>
