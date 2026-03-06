@@ -4,7 +4,6 @@ import type { ProjectStatus } from "@/lib/generated/prisma/client";
 import type { VPSConfig } from "../nginx-manager";
 import { setupCICD, detectNodeBinPath, parseGitHubRepo } from "../cicd";
 import { detectPackageManager } from "../packages";
-import { detectOrm } from "../orms";
 import type {
   DiscoveredProject,
   SyncImportResult,
@@ -166,7 +165,6 @@ export async function importProjects(
         try {
           const workDir = disc.ecosystemCwd || disc.projectPath;
           const pm = await detectPackageManager(vps.ssh, workDir);
-          const orm = await detectOrm(vps.ssh, workDir);
 
           await setupCICD({
             repoUrl: disc.repoUrl,
@@ -180,7 +178,6 @@ export async function importProjects(
               projectPath: disc.projectPath,
               workDir,
               packageManager: pm.name,
-              hasPrisma: !!orm,
               vpsUser: vps.deployUser,
               nodeBinPath,
             },

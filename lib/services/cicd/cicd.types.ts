@@ -14,7 +14,6 @@ export interface DeployScriptOptions {
   projectPath: string;
   workDir: string;
   packageManager: string;
-  hasPrisma: boolean;
   vpsUser: string;
   nodeBinPath: string;
 }

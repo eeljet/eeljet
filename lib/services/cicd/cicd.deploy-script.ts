@@ -33,7 +33,6 @@ export async function createDeployScript(
     projectPath,
     workDir,
     packageManager,
-    hasPrisma,
     vpsUser,
     nodeBinPath,
   } = options;
@@ -52,29 +51,12 @@ export async function createDeployScript(
         ? "yarn build"
         : "npm run build";
 
-  const runCmd =
-    packageManager === "pnpm"
-      ? "pnpm"
-      : packageManager === "yarn"
-        ? "yarn"
-        : "npm run";
-
   const needsCd = workDir !== projectPath;
-
-  let prismaBlock = "";
-  if (hasPrisma) {
-    prismaBlock = `
-# 4. Run database migrations and generate client
-echo "Running database migrations..."
-${runCmd} db:generate
-${runCmd} db:push
-`;
-  }
 
   const script = `#!/bin/bash
 set -e
 
-# Load both NVM (for node) and pnpm global bin (for pm2)
+# Load NVM (for node) and pnpm global bin (for pm2)
 export PATH="${nodeBinPath}:/home/${vpsUser}/.local/share/pnpm:$PATH"
 
 echo "Starting deployment..."
@@ -93,14 +75,14 @@ ${needsCd ? `\n# Navigate to work directory\ncd "${workDir}"\n` : ""}
 # 3. Install dependencies
 echo "Installing dependencies..."
 ${installCmd}
-${prismaBlock}
-# ${hasPrisma ? "5" : "4"}. Build application
+
+# 4. Build application
 echo "Building application..."
 ${buildCmd}
 ${needsCd ? `\n# Return to project root\ncd "${projectPath}"\n` : ""}
-# ${hasPrisma ? "6" : "5"}. Restart PM2 application
+# 5. Restart PM2 application
 echo "Restarting application..."
-pm2 startOrRestart ecosystem.config.js
+pm2 startOrRestart ecosystem.config.cjs
 
 echo "Deployment completed successfully at $(date)"`;
 

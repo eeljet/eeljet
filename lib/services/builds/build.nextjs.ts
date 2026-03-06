@@ -55,7 +55,4 @@ export class NextJsApp implements AppTypeDetector {
     }
   }
 
-  getStartCommand(_pm: PackageManager): string {
-    return "node_modules/next/dist/bin/next start";
-  }
 }

@@ -116,8 +116,8 @@ async function gatherProjectData(
     // Section 3: git branch
     `cd "${projectPath}" 2>/dev/null && git branch --show-current 2>/dev/null || echo "__NONE__"`,
     `echo "${SEP}"`,
-    // Section 4: ecosystem.config.js
-    `cat "${projectPath}/ecosystem.config.js" 2>/dev/null || echo "__NONE__"`,
+    // Section 4: ecosystem config (.cjs for new projects, .js for legacy)
+    `cat "${projectPath}/ecosystem.config.cjs" "${projectPath}/ecosystem.config.js" 2>/dev/null | head -c 10000 || echo "__NONE__"`,
     `echo "${SEP}"`,
     // Section 5: package.json
     `cat "${projectPath}/package.json" 2>/dev/null || echo "__NONE__"`,

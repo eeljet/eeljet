@@ -11,17 +11,13 @@ import {
 import type { Project, Deployment } from "@/lib/generated/prisma/client";
 import { detectAppType, type AppTypeDetector } from "./builds";
 import { detectPackageManager } from "./packages";
-import { detectOrm } from "./orms";
 import { detectGitProvider } from "./git";
 import { setupCICD, removeDeployScript, detectNodeBinPath } from "./cicd";
 import type { VPSConfig } from "./nginx-manager";
 
 export type { PackageManager } from "./packages";
 
-const SOURCE_NVM = `# Replace your PATH export with this for better stability:
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"
-export PATH="$HOME/.local/share/pnpm:$PATH"`;
+const SOURCE_NVM = `export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"; export PATH="$HOME/.local/share/pnpm:$PATH"`;
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -252,7 +248,6 @@ export async function createProject(
   const detectAppStep = logger.addStep("Detect app type");
   const envStep = logger.addStep("Create .env file");
   const installStep = logger.addStep("Install dependencies");
-  const ormStep = logger.addStep("ORM setup");
   const buildStep = logger.addStep("Build application");
   const pm2Step = logger.addStep("Start with PM2");
   const portMapStep = logger.addStep("Add port mapping");
@@ -291,8 +286,6 @@ export async function createProject(
       .trim()
       .substring(0, 200);
     logger.completeStep(cloneStep, `Commit: ${commitHash} - ${commitMsg}`);
-
-    // marker files no longer used; ownership inferred from git remote
 
     // Determine work directory
     const workDir = input.rootDirectory
@@ -365,23 +358,7 @@ export async function createProject(
     }
     logger.completeStep(installStep, "Dependencies installed");
 
-    // STEP 7: ORM setup (if detected)
-    logger.startStep(ormStep);
-    const orm = await detectOrm(vps.ssh, workDir);
-    if (orm) {
-      await orm.generate(vps.ssh, workDir, SOURCE_NVM);
-      const ormResult = await orm.pushSchema(
-        vps.ssh,
-        workDir,
-        SOURCE_NVM,
-        envVars,
-      );
-      logger.completeStep(ormStep, ormResult.message);
-    } else {
-      logger.skipStep(ormStep, "No ORM detected");
-    }
-
-    // STEP 8: Build
+    // STEP 7: Build
     logger.startStep(buildStep);
     const buildCmd = input.buildCommand || appType.getBuildCommand(pm.name);
     const buildResult = await sshExec(
@@ -397,7 +374,7 @@ export async function createProject(
     }
     logger.completeStep(buildStep, "Build completed");
 
-    // STEP 9: PM2 ecosystem config (app-type specific, or custom start command)
+    // STEP 8: PM2 ecosystem config (app-type specific, or custom start command)
     const ecosystemConfig = input.startCommand
       ? `module.exports = {
   apps: [{
@@ -415,7 +392,6 @@ export async function createProject(
       NODE_ENV: 'production',
       PORT: ${input.port}
     },
-    // Replace your PATH export with this for better stability:
     exec_mode: 'fork',
     interpreter: 'bash',
     interpreter_args: '-c',
@@ -426,36 +402,23 @@ export async function createProject(
           name: pm2Id,
           cwd: workDir,
           port: input.port,
+          packageManager: pm.name,
         });
     const ecoWriteResult = await sshExec(
       vps.ssh,
-      `cat > "${projectPath}/ecosystem.config.js" << 'EELJET_PM2_EOF'\n${ecosystemConfig}\nEELJET_PM2_EOF`,
+      `cat > "${projectPath}/ecosystem.config.cjs" << 'EELJET_PM2_EOF'\n${ecosystemConfig}\nEELJET_PM2_EOF`,
     );
     if (ecoWriteResult.code !== 0) {
       throw new Error(
-        `Failed to write ecosystem.config.js: ${ecoWriteResult.stderr}`,
+        `Failed to write ecosystem.config.cjs: ${ecoWriteResult.stderr}`,
       );
     }
 
-    // Write app-type server script if needed (e.g. Vite static server)
-    const serverScript = appType.getServerScript?.();
-    if (serverScript) {
-      const scriptWriteResult = await sshExec(
-        vps.ssh,
-        `cat > "${workDir}/_eeljet_server.js" << 'EELJET_SRV_EOF'\n${serverScript}\nEELJET_SRV_EOF`,
-      );
-      if (scriptWriteResult.code !== 0) {
-        throw new Error(
-          `Failed to write server script: ${scriptWriteResult.stderr}`,
-        );
-      }
-    }
-
-    // STEP 10: Start PM2
+    // STEP 9: Start PM2
     logger.startStep(pm2Step);
     await sshExec(
       vps.ssh,
-      `bash -c '${SOURCE_NVM} && cd "${projectPath}" && pm2 start ecosystem.config.js 2>&1'`,
+      `bash -c '${SOURCE_NVM} && cd "${projectPath}" && pm2 start ecosystem.config.cjs 2>&1'`,
     );
     await sleep(3000); // Wait for startup
     try {
@@ -476,17 +439,17 @@ export async function createProject(
     await sshExec(vps.ssh, `bash -c '${SOURCE_NVM} && pm2 save'`);
     logger.completeStep(pm2Step, "Application started and saved");
 
-    // STEP 11: Add port mapping (wildcard DNS + SSL already exist)
+    // STEP 10: Add port mapping (wildcard DNS + SSL already exist)
     logger.startStep(portMapStep);
     await addPortMapping(vps, input.subdomain, domain, input.port);
     logger.completeStep(portMapStep, `Mapped to port ${input.port}`);
 
-    // STEP 12: Reload Nginx to apply new port mapping
+    // STEP 11: Reload Nginx to apply new port mapping
     logger.startStep(nginxReloadStep);
     await sshExec(vps.ssh, `echo "Reloading Nginx config..." && sudo -n nginx -t && sudo -n systemctl reload nginx`);
     logger.completeStep(nginxReloadStep, "Nginx reloaded");
 
-    // STEP 13: Database
+    // STEP 12: Save project to database
     logger.startStep(dbStep);
     const project = await prisma.project.create({
       data: {
@@ -531,7 +494,7 @@ export async function createProject(
     });
     logger.completeStep(dbStep, "Saved");
 
-    // STEP 14: Setup CI/CD (non-fatal — deployment already succeeded)
+    // STEP 13: Setup CI/CD (non-fatal — deployment already succeeded)
     logger.startStep(cicdStep);
     try {
       const nodeBinPath = await detectNodeBinPath(vps);
@@ -547,7 +510,6 @@ export async function createProject(
           projectPath,
           workDir,
           packageManager: pm.name,
-          hasPrisma: !!orm,
           vpsUser: vps.deployUser,
           nodeBinPath,
         },
@@ -629,7 +591,6 @@ export async function deployProject(
   const githubToken = decrypt(project.user.encryptedGithubToken);
   const gitProvider = detectGitProvider(project.repoUrl);
   const projectPath = `${vps.projectsRoot}/${project.subdomain}`;
-  const sourceNvm = SOURCE_NVM;
 
   const logger = new DeploymentLogger(options?.onProgress);
 
@@ -644,7 +605,6 @@ export async function deployProject(
     detectApp: logger.addStep("Detect app type"),
     env: logger.addStep("Update .env file"),
     install: logger.addStep("Install dependencies"),
-    orm: logger.addStep("ORM setup"),
     build: logger.addStep("Build application"),
     restart: logger.addStep(
       "Restart application",
@@ -659,7 +619,6 @@ export async function deployProject(
     STEPS.detectApp,
     STEPS.env,
     STEPS.install,
-    STEPS.orm,
     STEPS.build,
     STEPS.restart,
   ];
@@ -713,7 +672,7 @@ export async function deployProject(
           logger.startStep(stepId);
           const stopResult = await sshExec(
             vps.ssh,
-            `bash -c '${sourceNvm} && pm2 stop ${project.pm2Id}'`,
+            `bash -c '${SOURCE_NVM} && pm2 stop ${project.pm2Id}'`,
           );
           if (stopResult.code !== 0) {
             throw new Error(
@@ -842,7 +801,7 @@ export async function deployProject(
           const installCmd = project.installCommand || pm.getInstallCommand();
           const installResult = await sshExec(
             vps.ssh,
-            `bash -c '${sourceNvm} && cd "${workDir}" && ${installCmd} 2>&1'`,
+            `bash -c '${SOURCE_NVM} && cd "${workDir}" && ${installCmd} 2>&1'`,
             { timeout: 300000 },
           );
           if (installResult.code !== 0) {
@@ -854,33 +813,6 @@ export async function deployProject(
             throw new Error(`${pm.name} install failed`);
           }
           logger.completeStep(stepId, "Dependencies installed");
-          break;
-        }
-
-        case STEPS.orm: {
-          logger.startStep(stepId);
-          const detectedOrm = await detectOrm(vps.ssh, workDir);
-          if (detectedOrm) {
-            await detectedOrm.generate(vps.ssh, workDir, sourceNvm);
-
-            const envVarsForOrm: Record<string, string> = {
-              NODE_ENV: "production",
-              PORT: String(project.port),
-            };
-            for (const envVar of project.envVars) {
-              envVarsForOrm[envVar.key] = decrypt(envVar.encryptedValue);
-            }
-
-            const ormResult = await detectedOrm.pushSchema(
-              vps.ssh,
-              workDir,
-              sourceNvm,
-              envVarsForOrm,
-            );
-            logger.completeStep(stepId, ormResult.message);
-          } else {
-            logger.skipStep(stepId, "No ORM detected");
-          }
           break;
         }
 
@@ -896,7 +828,7 @@ export async function deployProject(
             project.buildCommand || appType.getBuildCommand(pm.name);
           const buildResult = await sshExec(
             vps.ssh,
-            `bash -c '${sourceNvm} && cd "${workDir}" && ${buildCmd} 2>&1'`,
+            `bash -c '${SOURCE_NVM} && cd "${workDir}" && ${buildCmd} 2>&1'`,
             { timeout: 600000 },
           );
           if (buildResult.code !== 0) {
@@ -939,33 +871,21 @@ export async function deployProject(
                 name: project.pm2Id!,
                 cwd: workDir,
                 port: project.port,
+                packageManager: pm?.name ?? "npm",
               });
           const ecoWriteRes = await sshExec(
             vps.ssh,
-            `cat > "${projectPath}/ecosystem.config.js" << 'EELJET_PM2_EOF'\n${ecoConfig}\nEELJET_PM2_EOF`,
+            `cat > "${projectPath}/ecosystem.config.cjs" << 'EELJET_PM2_EOF'\n${ecoConfig}\nEELJET_PM2_EOF`,
           );
           if (ecoWriteRes.code !== 0) {
             throw new Error(
-              `Failed to write ecosystem.config.js: ${ecoWriteRes.stderr}`,
+              `Failed to write ecosystem.config.cjs: ${ecoWriteRes.stderr}`,
             );
-          }
-
-          const serverScript = appType.getServerScript?.();
-          if (serverScript) {
-            const srvWriteRes = await sshExec(
-              vps.ssh,
-              `cat > "${workDir}/_eeljet_server.js" << 'EELJET_SRV_EOF'\n${serverScript}\nEELJET_SRV_EOF`,
-            );
-            if (srvWriteRes.code !== 0) {
-              throw new Error(
-                `Failed to write server script: ${srvWriteRes.stderr}`,
-              );
-            }
           }
 
           const restartResult = await sshExec(
             vps.ssh,
-            `bash -c '${sourceNvm} && pm2 restart ${project.pm2Id} && pm2 save'`,
+            `bash -c '${SOURCE_NVM} && pm2 restart ${project.pm2Id} && pm2 save'`,
           );
           if (restartResult.code !== 0) {
             const out =
@@ -982,7 +902,7 @@ export async function deployProject(
           } catch (pm2Err) {
             const logsResult = await sshExec(
               vps.ssh,
-              `bash -c '${sourceNvm} && (tail -n 100 ~/.pm2/logs/${project.pm2Id}-error.log 2>/dev/null; tail -n 100 ~/.pm2/logs/${project.pm2Id}-out.log 2>/dev/null) || true'`,
+              `bash -c '${SOURCE_NVM} && (tail -n 100 ~/.pm2/logs/${project.pm2Id}-error.log 2>/dev/null; tail -n 100 ~/.pm2/logs/${project.pm2Id}-out.log 2>/dev/null) || true'`,
             );
             const errMsg =
               pm2Err instanceof Error
@@ -1194,7 +1114,6 @@ export async function deleteProject(
     return check.stdout.trim() === "gone";
   };
 
-  const sourceNvm = SOURCE_NVM;
   const projectPath = `${vps.projectsRoot}/${project.subdomain}`;
 
   // 1. Stop and delete PM2 process
@@ -1202,7 +1121,7 @@ export async function deleteProject(
     try {
       const listResult = await sshExec(
         vps.ssh,
-        `bash -c '${sourceNvm} && pm2 jlist'`,
+        `bash -c '${SOURCE_NVM} && pm2 jlist'`,
       );
       const pm2List = JSON.parse(listResult.stdout || "[]");
       const processExists = pm2List.some(
@@ -1213,19 +1132,19 @@ export async function deleteProject(
       } else {
         try {
           await run(
-            `bash -c '${sourceNvm} && pm2 delete ${project.pm2Id} && pm2 save'`,
+            `bash -c '${SOURCE_NVM} && pm2 delete ${project.pm2Id} && pm2 save'`,
             `Stop PM2 process: ${project.pm2Id}`,
           );
         } catch (pmError) {
           // Try force delete if normal delete fails
           appendLog(`Normal PM2 delete failed, attempting force kill...`);
-          await sshExec(vps.ssh, `bash -c '${sourceNvm} && pm2 kill || true'`);
+          await sshExec(vps.ssh, `bash -c '${SOURCE_NVM} && pm2 kill || true'`);
           appendLog(`PM2 process force killed`);
           throw pmError;
         }
         const verify = await sshExec(
           vps.ssh,
-          `bash -c '${sourceNvm} && pm2 jlist'`,
+          `bash -c '${SOURCE_NVM} && pm2 jlist'`,
         );
         const pm2ListAfter = JSON.parse(verify.stdout || "[]");
         const stillRunning = pm2ListAfter.some(
@@ -1304,8 +1223,6 @@ export async function deleteProject(
     // Non-fatal — script might not exist
   }
 
-  // 7. (Previously removed marker file; no longer needed)
-
   // Stop here if any VPS cleanup failed — don't orphan resources
   if (errors.length > 0) {
     appendLog(`FAILED: ${errors.length} error(s) during cleanup:`);
@@ -1351,10 +1268,9 @@ export async function restartProject(projectId: string): Promise<DeployResult> {
   }
 
   try {
-    const sourceNvm = SOURCE_NVM;
     const result = await sshExec(
       vps.ssh,
-      `bash -c '${sourceNvm} && pm2 restart ${project.pm2Id}'`,
+      `bash -c '${SOURCE_NVM} && pm2 restart ${project.pm2Id}'`,
     );
 
     if (result.code !== 0) {
@@ -1387,10 +1303,9 @@ export async function stopProject(projectId: string): Promise<DeployResult> {
   }
 
   try {
-    const sourceNvm = SOURCE_NVM;
     await sshExec(
       vps.ssh,
-      `bash -c '${sourceNvm} && pm2 stop ${project.pm2Id}'`,
+      `bash -c '${SOURCE_NVM} && pm2 stop ${project.pm2Id}'`,
     );
 
     await prisma.project.update({
