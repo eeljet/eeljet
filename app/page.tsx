@@ -55,24 +55,24 @@ const features = [
 
 const deploySteps = [
   {
-    step: "1",
+    step: "01",
     label: "Connect",
     desc: "Sign in with GitHub and pick a repository",
   },
   {
-    step: "2",
+    step: "02",
     label: "Configure",
     desc: "Choose a subdomain and add your environment variables",
   },
   {
-    step: "3",
+    step: "03",
     label: "Deploy",
     desc: "One click. Build, start, and go live automatically",
   },
   {
-    step: "4",
+    step: "04",
     label: "Manage",
-    desc: "View logs, redeploy, or update from your dashboard",
+    desc: "Monitor, redeploy, or roll back from your dashboard anytime",
   },
 ];
 
@@ -160,7 +160,7 @@ export default async function LandingPage() {
             </div>
 
             {/* Right: Terminal mock */}
-            <div className="relative">
+            <div className="relative w-full max-w-md mx-auto lg:mx-0">
               <div className="glow-green rounded-xl">
                 <div className="rounded-xl border border-border/50 bg-card overflow-hidden shadow-2xl">
                   {/* Title bar */}
@@ -294,18 +294,6 @@ export default async function LandingPage() {
       <footer className="border-t border-border/50 py-6">
         <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Image
-              src="/eeljet.png"
-              alt="EelJet"
-              width={20}
-              height={20}
-              className="rounded"
-            />
-            <span>EelJet</span>
-            <span className="text-border">|</span>
-            <span>by Marc Tyson Clebert</span>
-          </div>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <a
               href="https://github.com/eeljet"
               target="_blank"
@@ -314,13 +302,24 @@ export default async function LandingPage() {
             >
               GitHub
             </a>
+          </div>
+
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <a
               href="https://eeljet.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-foreground transition-colors"
+              className="hover:text-foreground transition-colors flex items-center gap-1"
             >
-              Portfolio
+              <span>EelJet</span>
+              <span className="text-border">|</span>
+              <Image
+                src="/eeljet.png"
+                alt="EelJet"
+                width={20}
+                height={20}
+                className="rounded bg-amber-50"
+              />
             </a>
           </div>
         </div>
