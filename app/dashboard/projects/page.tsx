@@ -658,11 +658,11 @@ export default function ProjectsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        title="Deploy"
-                        onClick={() => performAction(project.id, "deploy")}
-                        disabled={actionLoading === `${project.id}-deploy`}
+                        title={project.status === "STOPPED" ? "Restart" : "Deploy"}
+                        onClick={() => performAction(project.id, project.status === "STOPPED" ? "restart" : "deploy")}
+                        disabled={actionLoading === `${project.id}-restart` || actionLoading === `${project.id}-deploy`}
                       >
-                        {actionLoading === `${project.id}-deploy` ? (
+                        {(actionLoading === `${project.id}-restart` || actionLoading === `${project.id}-deploy`) ? (
                           <RefreshCw className="h-4 w-4 animate-spin" />
                         ) : (
                           <Play className="h-4 w-4" />

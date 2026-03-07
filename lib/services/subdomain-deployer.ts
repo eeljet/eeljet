@@ -1337,6 +1337,11 @@ export async function restartProject(projectId: string): Promise<DeployResult> {
       throw new Error(`PM2 restart failed: ${result.stderr}`);
     }
 
+    await prisma.project.update({
+      where: { id: projectId },
+      data: { status: "ACTIVE" },
+    });
+
     return { success: true, project };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
