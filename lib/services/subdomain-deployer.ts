@@ -12,7 +12,7 @@ import type { Project, Deployment } from "@/lib/generated/prisma/client";
 import { detectAppType, type AppTypeDetector } from "./builds";
 import { detectPackageManager } from "./packages";
 import { detectGitProvider } from "./git";
-import { setupCICD, removeDeployScript, detectNodeBinPath } from "./cicd";
+import { setupCICD, detectNodeBinPath } from "./cicd";
 import type { VPSConfig } from "./nginx-manager";
 
 export type { PackageManager } from "./packages";
@@ -218,8 +218,20 @@ export async function createProject(
   }
 
   const githubToken = decrypt(user.encryptedGithubToken);
-  const projectPath = `${vps.projectsRoot}/${input.subdomain}`;
+  const projectPath = `${vps.appsRoot}/${input.userId}/${input.subdomain}`;
   const pm2Id = input.subdomain.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+
+  // Check disk quota before starting
+  const userQuota = await prisma.user.findUnique({
+    where: { id: input.userId },
+    select: { diskQuotaBytes: true, diskUsedBytes: true },
+  });
+  if (userQuota && userQuota.diskUsedBytes >= userQuota.diskQuotaBytes) {
+    return {
+      success: false,
+      error: `Disk quota exceeded (${(Number(userQuota.diskUsedBytes) / 1073741824).toFixed(2)} GB used of ${(Number(userQuota.diskQuotaBytes) / 1073741824).toFixed(2)} GB). Upgrade your plan to continue.`,
+    };
+  }
 
   // Verify port is available
   const portInUse = await isPortInUse(vps, input.port);
@@ -261,7 +273,7 @@ export async function createProject(
     await sshExec(vps.ssh, `sudo rm -rf "${projectPath}"`);
     await sshExec(
       vps.ssh,
-      `sudo mkdir -p "${projectPath}" && sudo chown $(whoami):$(whoami) "${projectPath}"`,
+      `sudo mkdir -p "${projectPath}" && sudo chown -R $(whoami):$(whoami) "${vps.appsRoot}/${input.userId}"`,
     );
 
     const cloneResult = await gitProvider.cloneSecure(
@@ -286,6 +298,12 @@ export async function createProject(
       .trim()
       .substring(0, 200);
     logger.completeStep(cloneStep, `Commit: ${commitHash} - ${commitMsg}`);
+
+    // Exclude EelJet-generated files from git tracking (local only, not committed)
+    await sshExec(
+      vps.ssh,
+      `printf 'deploy.sh\necosystem.config.cjs\n.env\n' >> "${projectPath}/.git/info/exclude"`,
+    );
 
     // Determine work directory
     const workDir = input.rootDirectory
@@ -495,6 +513,23 @@ export async function createProject(
     });
     logger.completeStep(dbStep, "Saved");
 
+    // Sync disk usage for the user (non-fatal)
+    try {
+      const duResult = await sshExec(
+        vps.ssh,
+        `du -sb "${vps.appsRoot}/${input.userId}" 2>/dev/null | awk '{print $1}'`,
+      );
+      const usedBytes = parseInt(duResult.stdout.trim(), 10);
+      if (!isNaN(usedBytes)) {
+        await prisma.user.update({
+          where: { id: input.userId },
+          data: { diskUsedBytes: BigInt(usedBytes) },
+        });
+      }
+    } catch {
+      // Non-fatal — quota will resync on next deployment
+    }
+
     // STEP 13: Setup CI/CD (non-fatal — deployment already succeeded)
     logger.startStep(cicdStep);
     try {
@@ -591,7 +626,7 @@ export async function deployProject(
 
   const githubToken = decrypt(project.user.encryptedGithubToken);
   const gitProvider = detectGitProvider(project.repoUrl);
-  const projectPath = `${vps.projectsRoot}/${project.subdomain}`;
+  const projectPath = `${vps.appsRoot}/${project.userId}/${project.subdomain}`;
 
   const logger = new DeploymentLogger(options?.onProgress);
 
@@ -950,6 +985,23 @@ export async function deployProject(
       },
     });
 
+    // Sync disk usage for the user (non-fatal)
+    try {
+      const duResult = await sshExec(
+        vps.ssh,
+        `du -sb "${vps.appsRoot}/${project.userId}" 2>/dev/null | awk '{print $1}'`,
+      );
+      const usedBytes = parseInt(duResult.stdout.trim(), 10);
+      if (!isNaN(usedBytes)) {
+        await prisma.user.update({
+          where: { id: project.userId },
+          data: { diskUsedBytes: BigInt(usedBytes) },
+        });
+      }
+    } catch {
+      // Non-fatal
+    }
+
     return {
       success: true,
       project: updatedProject,
@@ -1007,7 +1059,7 @@ export async function syncEnvToVPS(
     return { success: false, error: "Project not found" };
   }
 
-  const projectPath = `${vps.projectsRoot}/${project.subdomain}`;
+  const projectPath = `${vps.appsRoot}/${project.userId}/${project.subdomain}`;
   const workDir = project.rootDirectory
     ? `${projectPath}/${sanitizeShellInput(project.rootDirectory)}`
     : projectPath;
@@ -1086,7 +1138,6 @@ export async function deleteProject(
   const errors: string[] = [];
   const appendLog = (msg: string) => {
     logs += `[${new Date().toISOString()}] ${msg}\n`;
-    console.log(`[Delete] ${msg}`);
     onProgress?.(logs);
   };
 
@@ -1116,7 +1167,7 @@ export async function deleteProject(
     return check.stdout.trim() === "gone";
   };
 
-  const projectPath = `${vps.projectsRoot}/${project.subdomain}`;
+  const projectPath = `${vps.appsRoot}/${project.userId}/${project.subdomain}`;
 
   // 1. Stop and delete PM2 process
   if (project.pm2Id) {
@@ -1183,7 +1234,7 @@ export async function deleteProject(
 
   // 4. Remove project directory
   try {
-    if (projectPath.startsWith(vps.projectsRoot) && project.subdomain) {
+    if (projectPath.startsWith(vps.appsRoot) && project.userId && project.subdomain) {
       await run(
         `rm -rf "${projectPath}"`,
         `Remove directory ${projectPath}`,
@@ -1217,14 +1268,6 @@ export async function deleteProject(
     }
   }
 
-  // 6. Remove deploy script (non-fatal)
-  try {
-    await removeDeployScript(vps, project.subdomain, vps.deployUser);
-    appendLog("Deploy script removed");
-  } catch {
-    // Non-fatal — script might not exist
-  }
-
   // Stop here if any VPS cleanup failed — don't orphan resources
   if (errors.length > 0) {
     appendLog(`FAILED: ${errors.length} error(s) during cleanup:`);
@@ -1245,6 +1288,21 @@ export async function deleteProject(
     const msg = e instanceof Error ? e.message : "Unknown error";
     appendLog(`ERROR: Database deletion failed: ${msg}`);
     return { success: false, error: msg, logs };
+  }
+
+  // Sync disk usage after deletion (non-fatal)
+  try {
+    const duResult = await sshExec(
+      vps.ssh,
+      `du -sb "${vps.appsRoot}/${project.userId}" 2>/dev/null | awk '{print $1}'`,
+    );
+    const usedBytes = parseInt(duResult.stdout.trim(), 10);
+    await prisma.user.update({
+      where: { id: project.userId },
+      data: { diskUsedBytes: BigInt(isNaN(usedBytes) ? 0 : usedBytes) },
+    });
+  } catch {
+    // Non-fatal
   }
 
   appendLog("Project fully deleted and verified");

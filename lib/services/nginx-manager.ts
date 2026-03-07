@@ -4,6 +4,7 @@ import { sshExec, type SSHConfig } from "./ssh-client";
 export interface VPSConfig {
   ssh: SSHConfig;
   projectsRoot: string;
+  appsRoot: string;
   deployUser: string;
   portMappingFile: string;
 }

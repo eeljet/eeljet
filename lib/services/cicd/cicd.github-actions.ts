@@ -114,8 +114,8 @@ export async function createWorkflowFile(
   owner: string,
   repo: string,
   token: string,
-  subdomain: string,
   branch: string,
+  deployScriptPath: string,
 ): Promise<void> {
   const workflowContent = `name: Deploy via EelJet
 
@@ -140,7 +140,7 @@ jobs:
           username: \${{ secrets.SSH_USER }}
           key: \${{ secrets.SSH_PRIVATE_KEY }}
           port: \${{ secrets.SSH_PORT }}
-          script: ~/${subdomain}_deploy.sh
+          script: ${deployScriptPath}
 `;
 
   const contentBase64 = Buffer.from(workflowContent).toString("base64");

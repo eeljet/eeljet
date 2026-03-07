@@ -21,9 +21,6 @@ export default function PWA() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
         .register('/sw.js')
-        .then((registration) => {
-          console.log('Service Worker registered:', registration);
-        })
         .catch((error) => {
           console.error('Service Worker registration failed:', error);
         });
@@ -34,13 +31,11 @@ export default function PWA() {
       e.preventDefault();
       const promptEvent = e as BeforeInstallPromptEvent;
       setDeferredPrompt(promptEvent);
-      console.log('PWA install prompt available');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
     const handleAppInstalled = () => {
-      console.log('PWA was installed');
       setDeferredPrompt(null);
     };
 

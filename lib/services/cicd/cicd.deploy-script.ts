@@ -71,6 +71,9 @@ git reset --hard
 # 2. Pull latest changes
 echo "Pulling latest code from GitHub..."
 git pull origin ${branch}
+
+# Ensure EelJet-generated files are excluded from git tracking
+printf 'deploy.sh\necosystem.config.cjs\n.env\n' >> ".git/info/exclude"
 ${needsCd ? `\n# Navigate to work directory\ncd "${workDir}"\n` : ""}
 # 3. Install dependencies
 echo "Installing dependencies..."
@@ -86,7 +89,7 @@ pm2 startOrRestart ecosystem.config.cjs
 
 echo "Deployment completed successfully at $(date)"`;
 
-  const scriptPath = `/home/${vpsUser}/${subdomain}_deploy.sh`;
+  const scriptPath = `${projectPath}/deploy.sh`;
 
   await sshExec(
     vps.ssh,
@@ -97,12 +100,12 @@ echo "Deployment completed successfully at $(date)"`;
 
 /**
  * Remove a project's deploy script from the VPS.
+ * The script lives inside the project directory, so this is only needed
+ * when cleaning up without removing the entire project folder.
  */
 export async function removeDeployScript(
   vps: VPSConfig,
-  subdomain: string,
-  vpsUser: string,
+  projectPath: string,
 ): Promise<void> {
-  const scriptPath = `/home/${vpsUser}/${subdomain}_deploy.sh`;
-  await sshExec(vps.ssh, `rm -f "${scriptPath}"`);
+  await sshExec(vps.ssh, `rm -f "${projectPath}/deploy.sh"`);
 }

@@ -124,7 +124,7 @@ export default function ProjectDetailPage({
   // Resume dialog
   const [showResumeDialog, setShowResumeDialog] = useState(false);
 
-  const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || "postomation.com";
+  const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || "eeljet.com";
 
   // Fetch project data
   useEffect(() => {

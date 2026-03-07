@@ -100,7 +100,15 @@ async function gatherProjectData(
   port: number,
   pm2Map: Map<string, string>,
 ): Promise<DiscoveredProject> {
-  const projectPath = `${vps.projectsRoot}/${subdomain}`;
+  // Resolve actual project path — supports per-user structure: appsRoot/{userId}/{subdomain}
+  // Falls back to the legacy flat layout: projectsRoot/{subdomain}
+  const pathResult = await sshExec(
+    vps.ssh,
+    `ls -d "${vps.appsRoot}"/*/"${subdomain}" 2>/dev/null | head -1 || echo ""`,
+    { timeout: 5000 },
+  );
+  const resolvedPath = pathResult.stdout.trim();
+  const projectPath = resolvedPath || `${vps.projectsRoot}/${subdomain}`;
 
   // Batched SSH command: check dir, git info, ecosystem, package.json, .env
   const cmd = [

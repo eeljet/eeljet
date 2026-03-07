@@ -493,14 +493,6 @@ export type StorageBucketUncheckedUpdateManyWithoutProjectNestedInput = {
   deleteMany?: Prisma.StorageBucketScalarWhereInput | Prisma.StorageBucketScalarWhereInput[]
 }
 
-export type BigIntFieldUpdateOperationsInput = {
-  set?: bigint | number
-  increment?: bigint | number
-  decrement?: bigint | number
-  multiply?: bigint | number
-  divide?: bigint | number
-}
-
 export type StorageBucketCreateNestedOneWithoutFilesInput = {
   create?: Prisma.XOR<Prisma.StorageBucketCreateWithoutFilesInput, Prisma.StorageBucketUncheckedCreateWithoutFilesInput>
   connectOrCreate?: Prisma.StorageBucketCreateOrConnectWithoutFilesInput

@@ -86,7 +86,7 @@ export default function ProjectsPage() {
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
 
   // Get domain from env (passed via API or hardcoded for now)
-  const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || "postomation.com";
+  const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || "eeljet.com";
 
   const fetchProjects = async () => {
     try {

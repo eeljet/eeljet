@@ -23,6 +23,7 @@ export function getVPSConfig(): VPSConfig {
       privateKey,
     },
     projectsRoot: process.env.PROJECTS_ROOT || "/var/www",
+    appsRoot: process.env.APPS_ROOT || "/var/www/apps",
     deployUser: process.env.VPS_USER || "root",
     portMappingFile:
       process.env.PORT_MAPPING_FILE || "/etc/nginx/subdomain-ports.map",

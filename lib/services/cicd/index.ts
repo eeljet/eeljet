@@ -65,7 +65,8 @@ export async function setupCICD(
   // Step 3: Create workflow file in the repo
   // This creates a commit which triggers the first GitHub Actions run.
   try {
-    await createWorkflowFile(owner, repo, githubToken, subdomain, branch);
+    const deployScriptPath = `${deployScript.projectPath}/deploy.sh`;
+    await createWorkflowFile(owner, repo, githubToken, branch, deployScriptPath);
     workflowCreated = true;
   } catch (err) {
     errors.push(

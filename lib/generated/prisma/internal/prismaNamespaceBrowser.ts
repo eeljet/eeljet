@@ -90,6 +90,8 @@ export const UserScalarFieldEnum = {
   encryptedGithubToken: 'encryptedGithubToken',
   role: 'role',
   plan: 'plan',
+  diskQuotaBytes: 'diskQuotaBytes',
+  diskUsedBytes: 'diskUsedBytes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

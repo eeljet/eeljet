@@ -21,6 +21,8 @@ model User {
   encryptedGithubToken String?   @map("encrypted_github_token") @db.Text
   role                 UserRole  @default(USER)
   plan                 Plan      @default(FREE)
+  diskQuotaBytes       BigInt    @default(1073741824) @map("disk_quota_bytes") // 1 GB default (FREE plan)
+  diskUsedBytes        BigInt    @default(0) @map("disk_used_bytes")
 
   accounts      Account[]
   sessions      Session[]
@@ -97,7 +99,7 @@ model Project {
   id              String        @id @default(cuid())
   userId          String        @map("user_id")
   name            String // e.g., "Portfolio App"
-  subdomain       String        @unique // e.g., "portfolio" -> portfolio.postomation.com
+  subdomain       String        @unique // e.g., "portfolio" -> portfolio.eeljet.com
   repoUrl         String        @map("repo_url") // GitHub repo URL
   branch          String        @default("main") // Git branch to deploy
   installCommand  String?       @map("install_command") // Override: e.g., "pnpm install"

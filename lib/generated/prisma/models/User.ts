@@ -20,8 +20,20 @@ export type UserModel = runtime.Types.Result.DefaultSelection<Prisma.$UserPayloa
 
 export type AggregateUser = {
   _count: UserCountAggregateOutputType | null
+  _avg: UserAvgAggregateOutputType | null
+  _sum: UserSumAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
+}
+
+export type UserAvgAggregateOutputType = {
+  diskQuotaBytes: number | null
+  diskUsedBytes: number | null
+}
+
+export type UserSumAggregateOutputType = {
+  diskQuotaBytes: bigint | null
+  diskUsedBytes: bigint | null
 }
 
 export type UserMinAggregateOutputType = {
@@ -34,6 +46,8 @@ export type UserMinAggregateOutputType = {
   encryptedGithubToken: string | null
   role: $Enums.UserRole | null
   plan: $Enums.Plan | null
+  diskQuotaBytes: bigint | null
+  diskUsedBytes: bigint | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -48,6 +62,8 @@ export type UserMaxAggregateOutputType = {
   encryptedGithubToken: string | null
   role: $Enums.UserRole | null
   plan: $Enums.Plan | null
+  diskQuotaBytes: bigint | null
+  diskUsedBytes: bigint | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -62,11 +78,23 @@ export type UserCountAggregateOutputType = {
   encryptedGithubToken: number
   role: number
   plan: number
+  diskQuotaBytes: number
+  diskUsedBytes: number
   createdAt: number
   updatedAt: number
   _all: number
 }
 
+
+export type UserAvgAggregateInputType = {
+  diskQuotaBytes?: true
+  diskUsedBytes?: true
+}
+
+export type UserSumAggregateInputType = {
+  diskQuotaBytes?: true
+  diskUsedBytes?: true
+}
 
 export type UserMinAggregateInputType = {
   id?: true
@@ -78,6 +106,8 @@ export type UserMinAggregateInputType = {
   encryptedGithubToken?: true
   role?: true
   plan?: true
+  diskQuotaBytes?: true
+  diskUsedBytes?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -92,6 +122,8 @@ export type UserMaxAggregateInputType = {
   encryptedGithubToken?: true
   role?: true
   plan?: true
+  diskQuotaBytes?: true
+  diskUsedBytes?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -106,6 +138,8 @@ export type UserCountAggregateInputType = {
   encryptedGithubToken?: true
   role?: true
   plan?: true
+  diskQuotaBytes?: true
+  diskUsedBytes?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -149,6 +183,18 @@ export type UserAggregateArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: UserAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: UserSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: UserMinAggregateInputType
@@ -179,6 +225,8 @@ export type UserGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
   take?: number
   skip?: number
   _count?: UserCountAggregateInputType | true
+  _avg?: UserAvgAggregateInputType
+  _sum?: UserSumAggregateInputType
   _min?: UserMinAggregateInputType
   _max?: UserMaxAggregateInputType
 }
@@ -193,9 +241,13 @@ export type UserGroupByOutputType = {
   encryptedGithubToken: string | null
   role: $Enums.UserRole
   plan: $Enums.Plan
+  diskQuotaBytes: bigint
+  diskUsedBytes: bigint
   createdAt: Date
   updatedAt: Date
   _count: UserCountAggregateOutputType | null
+  _avg: UserAvgAggregateOutputType | null
+  _sum: UserSumAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
 }
@@ -228,6 +280,8 @@ export type UserWhereInput = {
   encryptedGithubToken?: Prisma.StringNullableFilter<"User"> | string | null
   role?: Prisma.EnumUserRoleFilter<"User"> | $Enums.UserRole
   plan?: Prisma.EnumPlanFilter<"User"> | $Enums.Plan
+  diskQuotaBytes?: Prisma.BigIntFilter<"User"> | bigint | number
+  diskUsedBytes?: Prisma.BigIntFilter<"User"> | bigint | number
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   accounts?: Prisma.AccountListRelationFilter
@@ -246,6 +300,8 @@ export type UserOrderByWithRelationInput = {
   encryptedGithubToken?: Prisma.SortOrderInput | Prisma.SortOrder
   role?: Prisma.SortOrder
   plan?: Prisma.SortOrder
+  diskQuotaBytes?: Prisma.SortOrder
+  diskUsedBytes?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   accounts?: Prisma.AccountOrderByRelationAggregateInput
@@ -267,6 +323,8 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   encryptedGithubToken?: Prisma.StringNullableFilter<"User"> | string | null
   role?: Prisma.EnumUserRoleFilter<"User"> | $Enums.UserRole
   plan?: Prisma.EnumPlanFilter<"User"> | $Enums.Plan
+  diskQuotaBytes?: Prisma.BigIntFilter<"User"> | bigint | number
+  diskUsedBytes?: Prisma.BigIntFilter<"User"> | bigint | number
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   accounts?: Prisma.AccountListRelationFilter
@@ -285,11 +343,15 @@ export type UserOrderByWithAggregationInput = {
   encryptedGithubToken?: Prisma.SortOrderInput | Prisma.SortOrder
   role?: Prisma.SortOrder
   plan?: Prisma.SortOrder
+  diskQuotaBytes?: Prisma.SortOrder
+  diskUsedBytes?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
+  _avg?: Prisma.UserAvgOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
   _min?: Prisma.UserMinOrderByAggregateInput
+  _sum?: Prisma.UserSumOrderByAggregateInput
 }
 
 export type UserScalarWhereWithAggregatesInput = {
@@ -305,6 +367,8 @@ export type UserScalarWhereWithAggregatesInput = {
   encryptedGithubToken?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   role?: Prisma.EnumUserRoleWithAggregatesFilter<"User"> | $Enums.UserRole
   plan?: Prisma.EnumPlanWithAggregatesFilter<"User"> | $Enums.Plan
+  diskQuotaBytes?: Prisma.BigIntWithAggregatesFilter<"User"> | bigint | number
+  diskUsedBytes?: Prisma.BigIntWithAggregatesFilter<"User"> | bigint | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
 }
@@ -319,6 +383,8 @@ export type UserCreateInput = {
   encryptedGithubToken?: string | null
   role?: $Enums.UserRole
   plan?: $Enums.Plan
+  diskQuotaBytes?: bigint | number
+  diskUsedBytes?: bigint | number
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
@@ -337,6 +403,8 @@ export type UserUncheckedCreateInput = {
   encryptedGithubToken?: string | null
   role?: $Enums.UserRole
   plan?: $Enums.Plan
+  diskQuotaBytes?: bigint | number
+  diskUsedBytes?: bigint | number
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
@@ -355,6 +423,8 @@ export type UserUpdateInput = {
   encryptedGithubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
+  diskQuotaBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  diskUsedBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
@@ -373,6 +443,8 @@ export type UserUncheckedUpdateInput = {
   encryptedGithubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
+  diskQuotaBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  diskUsedBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -391,6 +463,8 @@ export type UserCreateManyInput = {
   encryptedGithubToken?: string | null
   role?: $Enums.UserRole
   plan?: $Enums.Plan
+  diskQuotaBytes?: bigint | number
+  diskUsedBytes?: bigint | number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -405,6 +479,8 @@ export type UserUpdateManyMutationInput = {
   encryptedGithubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
+  diskQuotaBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  diskUsedBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -419,6 +495,8 @@ export type UserUncheckedUpdateManyInput = {
   encryptedGithubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
+  diskQuotaBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  diskUsedBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -433,8 +511,15 @@ export type UserCountOrderByAggregateInput = {
   encryptedGithubToken?: Prisma.SortOrder
   role?: Prisma.SortOrder
   plan?: Prisma.SortOrder
+  diskQuotaBytes?: Prisma.SortOrder
+  diskUsedBytes?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type UserAvgOrderByAggregateInput = {
+  diskQuotaBytes?: Prisma.SortOrder
+  diskUsedBytes?: Prisma.SortOrder
 }
 
 export type UserMaxOrderByAggregateInput = {
@@ -447,6 +532,8 @@ export type UserMaxOrderByAggregateInput = {
   encryptedGithubToken?: Prisma.SortOrder
   role?: Prisma.SortOrder
   plan?: Prisma.SortOrder
+  diskQuotaBytes?: Prisma.SortOrder
+  diskUsedBytes?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -461,8 +548,15 @@ export type UserMinOrderByAggregateInput = {
   encryptedGithubToken?: Prisma.SortOrder
   role?: Prisma.SortOrder
   plan?: Prisma.SortOrder
+  diskQuotaBytes?: Prisma.SortOrder
+  diskUsedBytes?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type UserSumOrderByAggregateInput = {
+  diskQuotaBytes?: Prisma.SortOrder
+  diskUsedBytes?: Prisma.SortOrder
 }
 
 export type UserScalarRelationFilter = {
@@ -488,6 +582,14 @@ export type EnumUserRoleFieldUpdateOperationsInput = {
 
 export type EnumPlanFieldUpdateOperationsInput = {
   set?: $Enums.Plan
+}
+
+export type BigIntFieldUpdateOperationsInput = {
+  set?: bigint | number
+  increment?: bigint | number
+  decrement?: bigint | number
+  multiply?: bigint | number
+  divide?: bigint | number
 }
 
 export type DateTimeFieldUpdateOperationsInput = {
@@ -560,6 +662,8 @@ export type UserCreateWithoutAccountsInput = {
   encryptedGithubToken?: string | null
   role?: $Enums.UserRole
   plan?: $Enums.Plan
+  diskQuotaBytes?: bigint | number
+  diskUsedBytes?: bigint | number
   createdAt?: Date | string
   updatedAt?: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -577,6 +681,8 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   encryptedGithubToken?: string | null
   role?: $Enums.UserRole
   plan?: $Enums.Plan
+  diskQuotaBytes?: bigint | number
+  diskUsedBytes?: bigint | number
   createdAt?: Date | string
   updatedAt?: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -610,6 +716,8 @@ export type UserUpdateWithoutAccountsInput = {
   encryptedGithubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
+  diskQuotaBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  diskUsedBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -627,6 +735,8 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   encryptedGithubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
+  diskQuotaBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  diskUsedBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -644,6 +754,8 @@ export type UserCreateWithoutSessionsInput = {
   encryptedGithubToken?: string | null
   role?: $Enums.UserRole
   plan?: $Enums.Plan
+  diskQuotaBytes?: bigint | number
+  diskUsedBytes?: bigint | number
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
@@ -661,6 +773,8 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   encryptedGithubToken?: string | null
   role?: $Enums.UserRole
   plan?: $Enums.Plan
+  diskQuotaBytes?: bigint | number
+  diskUsedBytes?: bigint | number
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
@@ -694,6 +808,8 @@ export type UserUpdateWithoutSessionsInput = {
   encryptedGithubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
+  diskQuotaBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  diskUsedBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
@@ -711,6 +827,8 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   encryptedGithubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
+  diskQuotaBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  diskUsedBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -728,6 +846,8 @@ export type UserCreateWithoutAuthenticatorInput = {
   encryptedGithubToken?: string | null
   role?: $Enums.UserRole
   plan?: $Enums.Plan
+  diskQuotaBytes?: bigint | number
+  diskUsedBytes?: bigint | number
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
@@ -745,6 +865,8 @@ export type UserUncheckedCreateWithoutAuthenticatorInput = {
   encryptedGithubToken?: string | null
   role?: $Enums.UserRole
   plan?: $Enums.Plan
+  diskQuotaBytes?: bigint | number
+  diskUsedBytes?: bigint | number
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
@@ -778,6 +900,8 @@ export type UserUpdateWithoutAuthenticatorInput = {
   encryptedGithubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
+  diskQuotaBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  diskUsedBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
@@ -795,6 +919,8 @@ export type UserUncheckedUpdateWithoutAuthenticatorInput = {
   encryptedGithubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
+  diskQuotaBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  diskUsedBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -812,6 +938,8 @@ export type UserCreateWithoutProjectsInput = {
   encryptedGithubToken?: string | null
   role?: $Enums.UserRole
   plan?: $Enums.Plan
+  diskQuotaBytes?: bigint | number
+  diskUsedBytes?: bigint | number
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
@@ -829,6 +957,8 @@ export type UserUncheckedCreateWithoutProjectsInput = {
   encryptedGithubToken?: string | null
   role?: $Enums.UserRole
   plan?: $Enums.Plan
+  diskQuotaBytes?: bigint | number
+  diskUsedBytes?: bigint | number
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
@@ -862,6 +992,8 @@ export type UserUpdateWithoutProjectsInput = {
   encryptedGithubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
+  diskQuotaBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  diskUsedBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
@@ -879,6 +1011,8 @@ export type UserUncheckedUpdateWithoutProjectsInput = {
   encryptedGithubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
   plan?: Prisma.EnumPlanFieldUpdateOperationsInput | $Enums.Plan
+  diskQuotaBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  diskUsedBytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -954,6 +1088,8 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   encryptedGithubToken?: boolean
   role?: boolean
   plan?: boolean
+  diskQuotaBytes?: boolean
+  diskUsedBytes?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   accounts?: boolean | Prisma.User$accountsArgs<ExtArgs>
@@ -973,6 +1109,8 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   encryptedGithubToken?: boolean
   role?: boolean
   plan?: boolean
+  diskQuotaBytes?: boolean
+  diskUsedBytes?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["user"]>
@@ -987,6 +1125,8 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   encryptedGithubToken?: boolean
   role?: boolean
   plan?: boolean
+  diskQuotaBytes?: boolean
+  diskUsedBytes?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["user"]>
@@ -1001,11 +1141,13 @@ export type UserSelectScalar = {
   encryptedGithubToken?: boolean
   role?: boolean
   plan?: boolean
+  diskQuotaBytes?: boolean
+  diskUsedBytes?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "emailVerified" | "image" | "githubUsername" | "encryptedGithubToken" | "role" | "plan" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "emailVerified" | "image" | "githubUsername" | "encryptedGithubToken" | "role" | "plan" | "diskQuotaBytes" | "diskUsedBytes" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   accounts?: boolean | Prisma.User$accountsArgs<ExtArgs>
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
@@ -1034,6 +1176,8 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     encryptedGithubToken: string | null
     role: $Enums.UserRole
     plan: $Enums.Plan
+    diskQuotaBytes: bigint
+    diskUsedBytes: bigint
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["user"]>
@@ -1472,6 +1616,8 @@ export interface UserFieldRefs {
   readonly encryptedGithubToken: Prisma.FieldRef<"User", 'String'>
   readonly role: Prisma.FieldRef<"User", 'UserRole'>
   readonly plan: Prisma.FieldRef<"User", 'Plan'>
+  readonly diskQuotaBytes: Prisma.FieldRef<"User", 'BigInt'>
+  readonly diskUsedBytes: Prisma.FieldRef<"User", 'BigInt'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
 }
