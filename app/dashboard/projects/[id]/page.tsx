@@ -274,6 +274,7 @@ export default function ProjectDetailPage({
     setActionResult(null);
     setDeploymentSteps(null);
     setDeploymentTextLog(null);
+    let succeeded = false;
 
     try {
       const res = await fetch(`/api/projects/${id}`, {
@@ -293,20 +294,24 @@ export default function ProjectDetailPage({
 
       if (error) throw new Error(error);
 
+      succeeded = true;
       setActionResult({ type: "success", message: "Deployment completed successfully" });
     } catch (err) {
       setActionResult({ type: "error", message: err instanceof Error ? err.message : "Unknown error" });
     } finally {
       setActionLoading(null);
-      // Refresh project + fetch final logs from DB
+      // Refresh project data
       const refreshRes = await fetch(`/api/projects/${id}`);
       if (refreshRes.ok) {
         const refreshData = await refreshRes.json();
         setProject(refreshData);
-        if (refreshData.deployments?.[0]?.id) {
+        if (!succeeded && refreshData.deployments?.[0]?.id) {
+          // On failure, keep dialog open with final logs from DB
           fetchDeploymentLogs(refreshData.deployments[0].id);
         }
       }
+      // Auto-close dialog on success
+      if (succeeded) setSelectedDeployment(null);
     }
   };
 
@@ -383,6 +388,7 @@ export default function ProjectDetailPage({
 
   const handleDelete = async () => {
     setActionLoading("delete");
+    setDeploymentSteps(null);
     setDeploymentTextLog(null);
     setSelectedDeployment("live-delete");
 

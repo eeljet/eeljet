@@ -39,8 +39,15 @@ import {
   Loader2,
   Check,
   SkipForward,
+  Terminal,
 } from "lucide-react";
 import { groupStepsForDisplay } from "@/lib/utils/deployment-display";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface GitHubRepo {
   id: number;
@@ -531,6 +538,7 @@ export default function NewProjectPage() {
         }
       }
     } catch (err) {
+      setLiveSteps(null);
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setSubmitting(false);
@@ -1003,60 +1011,6 @@ export default function NewProjectPage() {
                 )}
               </Button>
 
-              {liveSteps && (
-                <div className="border rounded-lg p-4 space-y-1">
-                  <p className="text-sm font-semibold mb-4">🚀 Deploying your project...</p>
-                  {groupStepsForDisplay(liveSteps)
-                    .filter((g) => g.status !== "pending")
-                    .filter((g) => !(g.label === "Setting Up Automation" && g.status === "skipped"))
-                    .map((group, i) => (
-                      <div key={i} className="flex items-start gap-3 py-2 border-b last:border-0">
-                        <div className="mt-0.5 shrink-0">
-                          {group.status === "success" ? (
-                            <Check className="h-4 w-4 text-green-500" />
-                          ) : group.status === "failed" ? (
-                            <AlertCircle className="h-4 w-4 text-destructive" />
-                          ) : group.status === "skipped" ? (
-                            <SkipForward className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-sm font-medium ${group.status === "skipped" ? "text-muted-foreground" : ""}`}>
-                              {group.label}
-                            </span>
-                            {group.totalDurationMs != null && group.status !== "running" && (
-                              <span className="text-xs text-muted-foreground">
-                                ({(group.totalDurationMs / 1000).toFixed(1)}s)
-                              </span>
-                            )}
-                          </div>
-                          {group.summary && group.status !== "running" && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{group.summary}</p>
-                          )}
-                          {group.errorOutput && (
-                            <pre className="text-xs font-mono bg-destructive/10 text-destructive p-2 rounded mt-1 max-h-32 overflow-auto whitespace-pre-wrap">
-                              {group.errorOutput}
-                            </pre>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  {liveSteps.every((s) => s.status === "success" || s.status === "skipped") && (
-                    <p className="text-sm font-medium text-green-500 pt-3 border-t">
-                      ✅ Deployment successful! Your app is live.
-                    </p>
-                  )}
-                  {liveSteps.some((s) => s.status === "failed") && (
-                    <p className="text-sm font-medium text-destructive pt-3 border-t">
-                      ❌ Deployment failed. See the error above for details.
-                    </p>
-                  )}
-                </div>
-              )}
-
               {submitting && !liveSteps && (
                 <p className="text-sm text-center text-muted-foreground">
                   Connecting to server...
@@ -1072,6 +1026,60 @@ export default function NewProjectPage() {
           )}
         </form>
       )}
+
+      <Dialog open={liveSteps !== null} onOpenChange={() => {}}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Terminal className="h-5 w-5" />
+              Deployment Logs
+            </DialogTitle>
+          </DialogHeader>
+          {liveSteps && (
+            <div className="space-y-1">
+              <p className="text-sm font-semibold mb-4">🚀 Deploying your project...</p>
+              {groupStepsForDisplay(liveSteps)
+                .filter((g) => g.status !== "pending")
+                .filter((g) => !(g.label === "Setting Up Automation" && g.status === "skipped"))
+                .map((group, i) => (
+                  <div key={i} className="flex items-start gap-3 py-2 border-b last:border-0">
+                    <div className="mt-0.5 shrink-0">
+                      {group.status === "success" ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : group.status === "failed" ? (
+                        <AlertCircle className="h-4 w-4 text-destructive" />
+                      ) : group.status === "skipped" ? (
+                        <SkipForward className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm font-medium ${group.status === "skipped" ? "text-muted-foreground" : ""}`}>
+                          {group.label}
+                        </span>
+                        {group.totalDurationMs != null && group.status !== "running" && (
+                          <span className="text-xs text-muted-foreground">
+                            ({(group.totalDurationMs / 1000).toFixed(1)}s)
+                          </span>
+                        )}
+                      </div>
+                      {group.summary && group.status !== "running" && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{group.summary}</p>
+                      )}
+                      {group.errorOutput && (
+                        <pre className="text-xs font-mono bg-destructive/10 text-destructive p-2 rounded mt-1 max-h-32 overflow-auto whitespace-pre-wrap">
+                          {group.errorOutput}
+                        </pre>
+                      )}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
