@@ -16,6 +16,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Plus,
   RefreshCw,
   FolderOpen,
@@ -30,6 +36,7 @@ import {
   Check,
   Circle,
   AlertCircle,
+  Terminal,
 } from "lucide-react";
 
 interface Deployment {
@@ -84,6 +91,7 @@ export default function ProjectsPage() {
   const [userPlan, setUserPlan] = useState<string>("FREE");
   const [userRole, setUserRole] = useState<string>("USER");
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
+  const [deletionLog, setDeletionLog] = useState<string | null>(null);
 
   // Get domain from env (passed via API or hardcoded for now)
   const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || "eeljet.com";
@@ -104,6 +112,7 @@ export default function ProjectsPage() {
 
   const consumeSSE = async (
     res: Response,
+    onLog?: (log: string) => void,
   ): Promise<{ error?: string; result?: Record<string, unknown> }> => {
     const reader = res.body?.getReader();
     if (!reader) throw new Error("No response stream");
@@ -126,8 +135,8 @@ export default function ProjectsPage() {
           const event = JSON.parse(line.slice(6));
           if (event.type === "complete") return { result: event };
           if (event.type === "error") return { error: event.error };
-        } catch (parseErr) {
-          // Skip lines that aren't valid JSON
+          if (event.type === "log" && onLog) onLog(event.log);
+        } catch {
           continue;
         }
       }
@@ -167,8 +176,9 @@ export default function ProjectsPage() {
 
   const deleteProject = async (id: string) => {
     setActionLoading(`${id}-delete`);
+    setDeletionLog("");
     setError(null);
-    
+
     try {
       const res = await fetch(`/api/projects/${id}`, { method: "DELETE" });
 
@@ -177,7 +187,7 @@ export default function ProjectsPage() {
         throw new Error(data.error || "Failed to delete project");
       }
 
-      const { error } = await consumeSSE(res);
+      const { error } = await consumeSSE(res, (log) => setDeletionLog(log));
       if (error) throw new Error(error);
 
       setSuccess("Project deleted successfully");
@@ -187,6 +197,7 @@ export default function ProjectsPage() {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setActionLoading(null);
+      setDeletionLog(null);
     }
   };
 
@@ -678,6 +689,20 @@ export default function ProjectsPage() {
           ))}
         </div>
       )}
+
+      <Dialog open={deletionLog !== null} onOpenChange={() => {}}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Terminal className="h-5 w-5" />
+              Deleting Project...
+            </DialogTitle>
+          </DialogHeader>
+          <pre className="text-xs font-mono bg-muted p-3 rounded max-h-96 overflow-auto whitespace-pre-wrap">
+            {deletionLog || "Starting deletion..."}
+          </pre>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={deleteProjectId !== null} onOpenChange={() => setDeleteProjectId(null)}>
         <AlertDialogContent>
