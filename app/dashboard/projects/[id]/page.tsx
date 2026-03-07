@@ -111,7 +111,8 @@ export default function ProjectDetailPage({
   const [bulkEnvInput, setBulkEnvInput] = useState("");
   const [showBulkInput, setShowBulkInput] = useState(false);
 
-  // Port edit
+  // Port edit (admin only)
+  const [userRole, setUserRole] = useState<string>("USER");
   const [portEdit, setPortEdit] = useState<string>("");
   const [savingPort, setSavingPort] = useState(false);
 
@@ -145,6 +146,10 @@ export default function ProjectDetailPage({
       }
     };
     fetchProject();
+    fetch("/api/auth/session")
+      .then((res) => res.json())
+      .then((data) => { if (data?.user?.role) setUserRole(data.user.role); })
+      .catch(() => {});
   }, [id]);
 
   // Fetch environment variables
@@ -641,28 +646,34 @@ export default function ProjectDetailPage({
               </div>
               <div className="col-span-2">
                 <Label className="text-muted-foreground">Port</Label>
-                <div className="flex items-center gap-2 mt-1">
-                  <Input
-                    type="number"
-                    value={portEdit}
-                    onChange={(e) => setPortEdit(e.target.value)}
-                    className="font-mono w-32 h-8 text-sm"
-                    min={1024}
-                    max={65535}
-                  />
-                  {portEdit !== String(project.port) && (
-                    <Button
-                      size="sm"
-                      className="h-8 text-xs px-3"
-                      onClick={savePort}
-                      disabled={savingPort}
-                    >
-                      {savingPort ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
-                      {savingPort ? "" : "Save"}
-                    </Button>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Redeploy required to apply to running process.</p>
+                {userRole === "ADMIN" ? (
+                  <>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Input
+                        type="number"
+                        value={portEdit}
+                        onChange={(e) => setPortEdit(e.target.value)}
+                        className="font-mono w-32 h-8 text-sm"
+                        min={1024}
+                        max={65535}
+                      />
+                      {portEdit !== String(project.port) && (
+                        <Button
+                          size="sm"
+                          className="h-8 text-xs px-3"
+                          onClick={savePort}
+                          disabled={savingPort}
+                        >
+                          {savingPort ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
+                          {savingPort ? "" : "Save"}
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Redeploy required to apply to running process.</p>
+                  </>
+                ) : (
+                  <p className="font-mono mt-1">{project.port}</p>
+                )}
               </div>
               <div>
                 <Label className="text-muted-foreground">Last Commit</Label>
