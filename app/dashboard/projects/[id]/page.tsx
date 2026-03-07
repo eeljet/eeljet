@@ -826,7 +826,11 @@ export default function ProjectDetailPage({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Terminal className="h-5 w-5" />
-              {selectedDeployment === "live-delete" ? "Deleting Project..." : "Deployment Logs"}
+              {selectedDeployment === "live-delete"
+                ? "Deleting Project..."
+                : deploymentSteps && isRedeployment(deploymentSteps)
+                ? "Redeployment Logs"
+                : "Deployment Logs"}
             </DialogTitle>
           </DialogHeader>
           {loadingLogs ? (

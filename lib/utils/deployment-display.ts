@@ -18,14 +18,14 @@ export interface DisplayGroup {
 const STEP_GROUP_CONFIG: { label: string; stepNames: string[] }[] = [
   {
     label: "Preparing Environment",
-    stepNames: ["Clone repository", "Stop process", "Pull latest changes", "Detect package manager", "Detect app type"],
+    stepNames: ["Clone repository", "Stop process", "Pull latest code", "Detect package manager", "Detect app type"],
   },
   { label: "Configuring Environment", stepNames: ["Create .env file", "Update .env file"] },
   { label: "Resolving Dependencies", stepNames: ["Install dependencies"] },
   { label: "Optimizing Production Build", stepNames: ["Build application"] },
   {
     label: "Going Live",
-    stepNames: ["Start with PM2", "Add port mapping", "Reload Nginx", "Restart with PM2", "Save to database"],
+    stepNames: ["Start with PM2", "Add port mapping", "Reload Nginx", "Restart with PM2", "Restart application", "Save to database"],
   },
   { label: "Setting Up Automation", stepNames: ["Setup CI/CD"] },
 ];
@@ -42,7 +42,7 @@ function getGroupStatus(steps: DeploymentStepLike[]): DisplayGroup["status"] {
 function getGroupSummary(label: string, steps: DeploymentStepLike[]): string {
   if (label === "Preparing Environment") {
     const clone = steps.find((s) => s.name === "Clone repository");
-    const pull = steps.find((s) => s.name === "Pull latest changes");
+    const pull = steps.find((s) => s.name === "Pull latest code");
     const detectPm = steps.find((s) => s.name === "Detect package manager" && s.status === "success");
     const detectApp = steps.find((s) => s.name === "Detect app type" && s.status === "success");
     const parts: string[] = [];
@@ -124,5 +124,5 @@ export function groupStepsForDisplay(steps: DeploymentStepLike[]): DisplayGroup[
 }
 
 export function isRedeployment(steps: DeploymentStepLike[]): boolean {
-  return steps.some((s) => s.name === "Pull latest changes" || s.name === "Stop process");
+  return steps.some((s) => s.name === "Pull latest code" || s.name === "Stop process");
 }
