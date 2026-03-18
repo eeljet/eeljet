@@ -1,6 +1,7 @@
 import type { AppTypeDetector } from "./build.pack";
 import { NextJsApp } from "./build.nextjs";
 import { ViteApp } from "./build.vite";
+import { NodeExpressApp } from "./build.express";
 import type { VPSConfig } from "../nginx-manager";
 
 export type { AppTypeDetector } from "./build.pack";
@@ -8,6 +9,7 @@ export type { AppTypeDetector } from "./build.pack";
 const APP_TYPES: AppTypeDetector[] = [
   new NextJsApp(),
   new ViteApp(),
+  new NodeExpressApp(),
   // Future: new AstroApp(),
   // Future: new RemixApp(),
 ];
@@ -21,5 +23,5 @@ export async function detectAppType(
       return appType;
     }
   }
-  throw new Error("Unsupported app type. Currently only Next.js and Vite are supported.");
+  throw new Error("Unsupported app type. Currently only Next.js, Vite, and Node.js/Express are supported.");
 }
