@@ -79,6 +79,9 @@ interface Project {
   nodeVersion: string;
   port: number;
   rootDirectory: string | null;
+  installCommand: string | null;
+  buildCommand: string | null;
+  startCommand: string | null;
   status: "PENDING" | "BUILDING" | "ACTIVE" | "FAILED" | "STOPPED";
   lastCommitHash: string | null;
   createdAt: string;
@@ -116,6 +119,11 @@ export default function ProjectDetailPage({
   const [portEdit, setPortEdit] = useState<string>("");
   const [savingPort, setSavingPort] = useState(false);
 
+  // Build settings
+  const [buildSettings, setBuildSettings] = useState({ installCommand: "", buildCommand: "", startCommand: "" });
+  const [savingBuildSettings, setSavingBuildSettings] = useState(false);
+  const [buildSettingsChanged, setBuildSettingsChanged] = useState(false);
+
   // Deployment logs
   const [selectedDeployment, setSelectedDeployment] = useState<string | null>(null);
   const [deploymentSteps, setDeploymentSteps] = useState<DeploymentStep[] | null>(null);
@@ -140,6 +148,11 @@ export default function ProjectDetailPage({
         const data = await res.json();
         setProject(data);
         setPortEdit(String(data.port));
+        setBuildSettings({
+          installCommand: data.installCommand ?? "",
+          buildCommand: data.buildCommand ?? "",
+          startCommand: data.startCommand ?? "",
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
@@ -380,6 +393,26 @@ export default function ProjectDetailPage({
       });
     } finally {
       setSavingEnv(false);
+    }
+  };
+
+  const saveBuildSettings = async () => {
+    setSavingBuildSettings(true);
+    try {
+      const res = await fetch(`/api/projects/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildSettings),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save build settings");
+      setProject((p) => p ? { ...p, ...buildSettings } : p);
+      setBuildSettingsChanged(false);
+      setActionResult({ type: "success", message: "Build settings saved. They will be used on the next redeploy." });
+    } catch (err) {
+      setActionResult({ type: "error", message: err instanceof Error ? err.message : "Unknown error" });
+    } finally {
+      setSavingBuildSettings(false);
     }
   };
 
@@ -768,6 +801,55 @@ export default function ProjectDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      {/* Build Settings */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Build Settings</CardTitle>
+              <CardDescription>
+                Override the commands used to install, build, and start your app. Leave blank to use auto-detected defaults.
+              </CardDescription>
+            </div>
+            {buildSettingsChanged && (
+              <Button onClick={saveBuildSettings} disabled={savingBuildSettings}>
+                {savingBuildSettings ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Save
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1">
+            <Label htmlFor="installCommand">Install Command</Label>
+            <Input
+              id="installCommand"
+              placeholder="e.g. pnpm install --frozen-lockfile"
+              value={buildSettings.installCommand}
+              onChange={(e) => { setBuildSettings((p) => ({ ...p, installCommand: e.target.value })); setBuildSettingsChanged(true); }}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="buildCommand">Build Command</Label>
+            <Input
+              id="buildCommand"
+              placeholder="e.g. pnpm db:generate && pnpm build"
+              value={buildSettings.buildCommand}
+              onChange={(e) => { setBuildSettings((p) => ({ ...p, buildCommand: e.target.value })); setBuildSettingsChanged(true); }}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="startCommand">Start Command</Label>
+            <Input
+              id="startCommand"
+              placeholder="e.g. node dist/index.js"
+              value={buildSettings.startCommand}
+              onChange={(e) => { setBuildSettings((p) => ({ ...p, startCommand: e.target.value })); setBuildSettingsChanged(true); }}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Environment Variables */}
       <Card>

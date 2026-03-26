@@ -68,7 +68,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
 
     const body = await request.json();
-    const { name, branch, nodeVersion, rootDirectory, port } = body;
+    const { name, branch, nodeVersion, rootDirectory, port, installCommand, buildCommand, startCommand } = body;
 
     // Validate port if provided
     if (port !== undefined) {
@@ -84,6 +84,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         ...(nodeVersion && { nodeVersion }),
         ...(rootDirectory !== undefined && { rootDirectory }),
         ...(port !== undefined && { port: Number(port) }),
+        ...(installCommand !== undefined && { installCommand: installCommand || null }),
+        ...(buildCommand !== undefined && { buildCommand: buildCommand || null }),
+        ...(startCommand !== undefined && { startCommand: startCommand || null }),
       },
     });
 
