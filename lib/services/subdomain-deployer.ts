@@ -9,7 +9,7 @@ import {
   type LoggerProgressCallback,
 } from "./deployment-logger";
 import type { Project, Deployment } from "@/lib/generated/prisma/client";
-import { detectAppType, type AppTypeDetector } from "./builds";
+import { detectAppType, getPackageJsonBuildScript, type AppTypeDetector } from "./builds";
 import { detectPackageManager } from "./packages";
 import { detectGitProvider } from "./git";
 import { setupCICD, detectNodeBinPath } from "./cicd";
@@ -378,7 +378,10 @@ export async function createProject(
 
     // STEP 7: Build
     logger.startStep(buildStep);
-    const buildCmd = input.buildCommand || appType.getBuildCommand(pm.name);
+    const buildCmd =
+      input.buildCommand ||
+      (await getPackageJsonBuildScript(workDir, vps, pm.name)) ||
+      appType.getBuildCommand(pm.name);
     const buildResult = await sshExec(
       vps.ssh,
       `bash -c '${SOURCE_NVM} && cd "${workDir}" && ${buildCmd} 2>&1'`,
@@ -386,7 +389,9 @@ export async function createProject(
     );
     if (buildResult.code !== 0) {
       const out =
-        buildResult.stdout.trim() || buildResult.stderr.trim() || undefined;
+        [buildResult.stdout.trim(), buildResult.stderr.trim()]
+          .filter(Boolean)
+          .join("\n") || undefined;
       logger.failStep(buildStep, "Build failed", out);
       throw new Error("Build failed");
     }
@@ -861,7 +866,9 @@ export async function deployProject(
             pm = await detectPackageManager(vps.ssh, workDir);
           }
           const buildCmd =
-            project.buildCommand || appType.getBuildCommand(pm.name);
+            project.buildCommand ||
+            (await getPackageJsonBuildScript(workDir, vps, pm.name)) ||
+            appType.getBuildCommand(pm.name);
           const buildResult = await sshExec(
             vps.ssh,
             `bash -c '${SOURCE_NVM} && cd "${workDir}" && ${buildCmd} 2>&1'`,
@@ -869,9 +876,9 @@ export async function deployProject(
           );
           if (buildResult.code !== 0) {
             const out =
-              buildResult.stdout.trim() ||
-              buildResult.stderr.trim() ||
-              undefined;
+              [buildResult.stdout.trim(), buildResult.stderr.trim()]
+                .filter(Boolean)
+                .join("\n") || undefined;
             logger.failStep(stepId, "Build failed", out);
             throw new Error("Build failed");
           }

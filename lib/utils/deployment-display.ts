@@ -107,7 +107,7 @@ export function groupStepsForDisplay(steps: DeploymentStepLike[]): DisplayGroup[
       status,
       totalDurationMs: totalMs > 0 ? totalMs : undefined,
       summary: getGroupSummary(config.label, groupSteps),
-      errorOutput: failedStep ? (failedStep.error ?? failedStep.output ?? undefined) : undefined,
+      errorOutput: failedStep ? (failedStep.output ?? failedStep.error ?? undefined) : undefined,
     });
   }
   // Fallback: any ungrouped steps
