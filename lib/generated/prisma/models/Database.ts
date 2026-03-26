@@ -1237,6 +1237,11 @@ export type DatabaseFindManyArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * Skip the first `n` Databases.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of Databases.
+   */
   distinct?: Prisma.DatabaseScalarFieldEnum | Prisma.DatabaseScalarFieldEnum[]
 }
 
