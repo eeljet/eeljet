@@ -59,7 +59,7 @@ export class DeploymentLogger {
       step.durationMs =
         new Date(step.finishedAt).getTime() -
         new Date(step.startedAt!).getTime();
-      step.output = output ? output.substring(0, 5000) : undefined;
+      step.output = output ? this.sanitizeOutput(output).substring(0, 5000) : undefined;
       this.appendText(`DONE: ${step.name} (${step.durationMs}ms)`);
       this.notify();
     }
@@ -74,10 +74,11 @@ export class DeploymentLogger {
         new Date(step.finishedAt).getTime() -
         new Date(step.startedAt!).getTime();
       step.error = error;
-      step.output = output ? output.substring(0, 5000) : undefined;
+      const sanitized = output ? this.sanitizeOutput(output) : undefined;
+      step.output = sanitized ? sanitized.substring(0, 5000) : undefined;
       this.appendText(`FAILED: ${step.name} - ${error}`);
-      if (output) {
-        this.appendText(output.substring(0, 5000));
+      if (sanitized) {
+        this.appendText(sanitized.substring(0, 5000));
       }
       this.notify();
     }
@@ -129,5 +130,17 @@ export class DeploymentLogger {
         /cat > "[^"]*" << 'EELJET_CRED_EOF'[\s\S]*?EELJET_CRED_EOF/g,
         "[credential setup]",
       );
+  }
+
+  private sanitizeOutput(output: string): string {
+    return output
+      // Database connection strings: postgres(ql)://user:pass@host:port/db
+      .replace(/postgres(?:ql)?:\/\/[^\s"']+/gi, "postgres://[redacted]")
+      // Prisma datasource line: at "host:port"
+      .replace(/\bat\s+"[^"]+:\d+"/g, 'at "[database]"')
+      // Internal server app paths: /var/www/apps/<id>/<name>
+      .replace(/\/var\/www\/apps\/[^/\s]+\/([^/\s]+)/g, "/app/$1")
+      // Any remaining absolute /var/www paths
+      .replace(/\/var\/www\/[^\s]*/g, "[server path]");
   }
 }
