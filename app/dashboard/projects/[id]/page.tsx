@@ -121,6 +121,7 @@ export default function ProjectDetailPage({
   const [deploymentSteps, setDeploymentSteps] = useState<DeploymentStep[] | null>(null);
   const [deploymentTextLog, setDeploymentTextLog] = useState<string | null>(null);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [deletingDeployment, setDeletingDeployment] = useState<string | null>(null);
 
   // Resume dialog
   const [showResumeDialog, setShowResumeDialog] = useState(false);
@@ -236,6 +237,25 @@ export default function ProjectDetailPage({
     }
   };
 
+
+  const deleteDeployment = async (deploymentId: string) => {
+    setDeletingDeployment(deploymentId);
+    try {
+      const res = await fetch(`/api/projects/${id}/deployments/${deploymentId}`, { method: "DELETE" });
+      if (res.ok) {
+        setProject((prev) =>
+          prev ? { ...prev, deployments: prev.deployments.filter((d) => d.id !== deploymentId) } : prev
+        );
+      } else {
+        const data = await res.json();
+        setActionResult({ type: "error", message: data.error || "Failed to delete deployment" });
+      }
+    } catch {
+      setActionResult({ type: "error", message: "Failed to delete deployment" });
+    } finally {
+      setDeletingDeployment(null);
+    }
+  };
 
   const getLastFailedStep = (): { stepId: string; stepName: string } | null => {
     if (!project || project.status !== "FAILED") return null;
@@ -700,32 +720,48 @@ export default function ProjectDetailPage({
             ) : (
               <div className="space-y-3">
                 {project.deployments.slice(0, 5).map((deployment) => (
-                  <button
+                  <div
                     key={deployment.id}
-                    type="button"
-                    className="flex items-center justify-between border-b pb-2 last:border-0 w-full text-left hover:bg-muted/50 rounded px-2 py-1 -mx-2 cursor-pointer transition-colors"
-                    onClick={() => fetchDeploymentLogs(deployment.id)}
+                    className="flex items-center justify-between border-b pb-2 last:border-0 gap-2"
                   >
-                    <div className="flex items-center gap-2">
-                      {deployment.status === "SUCCESS" ? (
-                        <Check className="h-4 w-4 text-green-500" />
-                      ) : deployment.status === "FAILED" ? (
-                        <AlertCircle className="h-4 w-4 text-destructive" />
-                      ) : (
-                        <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />
-                      )}
-                      <div>
-                        <p className="font-mono text-sm">{deployment.commitHash}</p>
-                        <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                          {deployment.commitMsg || "No message"}
-                        </p>
+                    <button
+                      type="button"
+                      className="flex items-center justify-between flex-1 text-left hover:bg-muted/50 rounded px-2 py-1 -mx-2 cursor-pointer transition-colors min-w-0"
+                      onClick={() => fetchDeploymentLogs(deployment.id)}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        {deployment.status === "SUCCESS" ? (
+                          <Check className="h-4 w-4 text-green-500 shrink-0" />
+                        ) : deployment.status === "FAILED" ? (
+                          <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4 text-blue-500 animate-spin shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-mono text-sm">{deployment.commitHash}</p>
+                          <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                            {deployment.commitMsg || "No message"}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      {new Date(deployment.startedAt).toLocaleDateString()}
-                    </div>
-                  </button>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0 ml-2">
+                        <Clock className="h-3 w-3" />
+                        {new Date(deployment.startedAt).toLocaleDateString()}
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={deployment.status === "BUILDING" || deletingDeployment === deployment.id}
+                      className="shrink-0 p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      onClick={() => deleteDeployment(deployment.id)}
+                    >
+                      {deletingDeployment === deployment.id ? (
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                  </div>
                 ))}
               </div>
             )}

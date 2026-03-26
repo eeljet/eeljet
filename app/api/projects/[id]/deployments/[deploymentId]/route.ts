@@ -66,3 +66,47 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     finishedAt: deployment.finishedAt,
   });
 }
+
+/**
+ * DELETE /api/projects/[id]/deployments/[deploymentId]
+ * Delete a deployment record
+ */
+export async function DELETE(_request: NextRequest, context: RouteContext) {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id, deploymentId } = await context.params;
+
+  const project = await prisma.project.findFirst({
+    where: { id, userId: session.user.id },
+  });
+
+  if (!project) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  }
+
+  const deployment = await prisma.deployment.findFirst({
+    where: { id: deploymentId, projectId: id },
+  });
+
+  if (!deployment) {
+    return NextResponse.json(
+      { error: "Deployment not found" },
+      { status: 404 },
+    );
+  }
+
+  if (deployment.status === "BUILDING") {
+    return NextResponse.json(
+      { error: "Cannot delete a deployment that is currently building" },
+      { status: 409 },
+    );
+  }
+
+  await prisma.deployment.delete({ where: { id: deploymentId } });
+
+  return NextResponse.json({ success: true });
+}
